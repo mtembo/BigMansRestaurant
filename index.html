@@ -256,6 +256,20 @@ textarea#jsonBox{width:100%;height:210px;font-family:monospace;font-size:12px;pa
 .mprice{font-weight:800;white-space:nowrap}
 .mnote{font-size:13px;font-weight:500;color:#6E6152;margin:2px 0 0 30px;line-height:1.45}
 .mnote b{color:#4E4436}
+.noprint{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.noprint button{flex:1;min-width:96px;background:var(--paper);border:3px solid var(--line);
+  border-radius:12px;padding:8px 6px;font-size:14px}
+.noprint button.on{background:var(--sun);border-color:#E0A81F}
+.noprint .tip{flex:1 0 100%;font-size:12px;font-weight:500;color:#7A6A55;text-align:center}
+#menuBody.d-short .mhead{margin-bottom:10px;padding-bottom:8px}
+#menuBody.d-short .mhead h1,#menuBody.d-price .mhead h1{font-size:22px}
+#menuBody.d-short .mcat,#menuBody.d-price .mcat{font-size:15px;margin:11px 0 5px}
+#menuBody.d-short .mitem{margin-bottom:6px}
+#menuBody.d-short .mtop,#menuBody.d-price .mtop{font-size:15px}
+#menuBody.d-short .mic,#menuBody.d-price .mic{font-size:17px}
+#menuBody.d-short .mic svg,#menuBody.d-price .mic svg{width:17px;height:17px}
+#menuBody.d-short .mnote{font-size:10.5px;margin:1px 0 0 22px;line-height:1.35}
+#menuBody.d-price .mitem{margin-bottom:2px}
 @media print{
   html,body{height:auto;overflow:visible;background:#fff}
   #app,#drawerbar{display:none!important}
@@ -265,7 +279,10 @@ textarea#jsonBox{width:100%;height:210px;font-family:monospace;font-size:12px;pa
   #menuScrim .sheet-head{background:#fff;color:#000;padding:0;display:none}
   #menuScrim .sheet-foot{display:none!important}
   #menuBody{overflow:visible;padding:0;column-count:2;column-gap:28px}
+  #menuBody.d-short,#menuBody.d-price{column-count:3;column-gap:18px}
+  .noprint{display:none!important}
   .mhead h1{font-size:26px}
+  @page{margin:.45in}
 }
 table.pmatrix{width:100%;border-collapse:collapse;background:var(--paper);border:3px solid var(--line);border-radius:12px;overflow:hidden}
 table.pmatrix th,table.pmatrix td{padding:8px 10px;font-size:15px;text-align:left;border-bottom:2px solid var(--line)}
@@ -1774,8 +1791,23 @@ $("priceReset").onclick=function(){
 function optTxt(o){ return o.label+(o.d?(o.d>0?" +"+money(o.d):" -"+money(-o.d)):""); }
 function listNames(a){ return a.map(function(x){ return x.name+(x.price?" +"+money(x.price):""); }).join(", "); }
 
+var MENU_DENSITY=store.get("ou_density","short");   /* fit it on fewer sheets - M. Tembo - 9/6/26 */
 function renderMenuSheet(){
-  var b=$("menuBody"); b.innerHTML="";
+  var b=$("menuBody"); b.innerHTML=""; b.className="d-"+MENU_DENSITY;
+  var ctl=document.createElement("div"); ctl.className="noprint";
+  [["full","Everything","2 columns"],["short","Short","3 columns"],["price","Just prices","3 columns"]]
+   .forEach(function(o){
+    var btn=document.createElement("button"); btn.className=MENU_DENSITY===o[0]?"on":"";
+    btn.innerHTML=o[1];
+    btn.onclick=function(){ MENU_DENSITY=o[0]; store.set("ou_density",MENU_DENSITY); beep(760,.05); renderMenuSheet(); };
+    ctl.appendChild(btn);
+  });
+  var tip=document.createElement("span"); tip.className="tip";
+  tip.textContent=MENU_DENSITY==="full"?"Every question spelled out. Longest to print."
+    :MENU_DENSITY==="short"?"All the choices, packed tight. Usually two sheets."
+    :"Names and prices only. Usually one sheet.";
+  ctl.appendChild(tip);
+  b.appendChild(ctl);
   var head=document.createElement("div"); head.className="mhead";
   head.innerHTML="<h1>\ud83d\udc14 Auggie's New Restaurant</h1><p>MENU</p>";
   b.appendChild(head);
@@ -1790,7 +1822,8 @@ function renderMenuSheet(){
         '<span class="mname">'+m.name+'</span><span class="mdots"></span>'+
         '<span class="mprice">'+(m.price===0?"free":money(m.price))+'</span></div>';
       var notes=[];
-      if(m.sizes) notes.push("<b>Sizes:</b> small -$0.40, medium, large +$0.70");
+      if(m.sizes&&MENU_DENSITY==="full") notes.push("<b>Sizes:</b> small -$0.40, medium, large +$0.70");
+      else if(m.sizes) notes.push("<b>Sizes</b>");
       (m.choices||[]).forEach(function(q){
         if(q.opts&&q.opts.length)
           notes.push("<b>"+q.name.replace(/\?$/,"")+":</b> "+q.opts.map(optTxt).join(", "));
@@ -1800,21 +1833,38 @@ function renderMenuSheet(){
           " (say the word to leave any of it off)");
       if(m.extras&&m.extras.length)
         notes.push("<b>"+((m.parts&&m.parts.length)?"Add":"Choose your toppings")+":</b> "+listNames(m.extras));
-      if(m.meal) notes.push("<b>Make it a meal</b> +$2.99 with a side, a drink and a dipping sauce, large meal +$3.79");
-      if(m.kidsmeal) notes.push("<b>Comes with</b> a side, a drink, a dipping sauce and a toy, "+
-        "or just the food on its own -$1.50");
-      if(m.kidsok) notes.push("<b>Kids meal</b> +$2.00 with a smaller side, a drink and a toy");
+      var brief=(MENU_DENSITY!=="full");
+      if(m.meal) notes.push(brief?"<b>\ud83c\udf5f meal</b>"
+        :"<b>Make it a meal</b> +$2.99 with a side, a drink and a dipping sauce, large meal +$3.79");
+      if(m.kidsmeal) notes.push(brief?"<b>\ud83e\uddf8 kids meal</b>"
+        :"<b>Comes with</b> a side, a drink, a dipping sauce and a toy, or just the food on its own -$1.50");
+      if(m.kidsok) notes.push(brief?"<b>\ud83e\uddf8 kids meal</b>"
+        :"<b>Kids meal</b> +$2.00 with a smaller side, a drink and a toy");
       if(m.also&&m.also.length) notes.push("<b>Also served as:</b> "+m.also.map(function(id){
         var nm=sectionName(id).toLowerCase().replace(/s$/,"");
         var word=id==="kids"?"a kids portion":(("aeiou".indexOf(nm.charAt(0))>=0?"an ":"a ")+nm+" portion");
         return word+" "+money(priceIn(m,id)); }).join(", "));
       if(m.sauces&&!m.kidsmeal&&!m.meal) notes.push("<b>Pick a dipping sauce</b>");
-      notes.forEach(function(n){
-        var d=document.createElement("div"); d.className="mnote"; d.innerHTML=n; row.appendChild(d);
-      });
+      if(MENU_DENSITY==="price") notes=[];
+      if(MENU_DENSITY==="short"&&notes.length){
+        var one=document.createElement("div"); one.className="mnote";
+        one.innerHTML=notes.join(" \u00b7 "); row.appendChild(one);
+      }else{
+        notes.forEach(function(n){
+          var d=document.createElement("div"); d.className="mnote"; d.innerHTML=n; row.appendChild(d);
+        });
+      }
       b.appendChild(row);
     });
   });
+  if(MENU_DENSITY!=="full"){
+    var foot=document.createElement("div"); foot.className="mnote";
+    foot.style.cssText="margin:14px 0 0;border-top:3px double var(--red);padding-top:8px;font-size:11px";
+    foot.innerHTML="<b>\ud83c\udf5f meal</b> +$2.99, or large meal +$3.79: adds a side, a drink and a dipping sauce. "+
+      "<b>\ud83e\uddf8 kids meal</b> +$2.00: a smaller side, a drink and a toy. "+
+      "Sizes where offered: small -$0.40, large +$0.70. Anything on an item can be left off.";
+    b.appendChild(foot);
+  }
 }
 $("menuBtn").onclick=function(){ renderMenuSheet(); beep(760,.07); $("menuScrim").classList.add("on"); };
 $("menuX").onclick=function(){ $("menuScrim").classList.remove("on"); };
