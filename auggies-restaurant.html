@@ -1,0 +1,1944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Auggie's New Restaurant</title>
+<!-- Auggie's New Restaurant - order counter - M. Tembo - 9/6/26 -->
+<style>
+:root{
+  --red:#E23B2E; --red-dark:#B32A20; --sun:#FFC53D; --cream:#FFF4E2;
+  --paper:#FFFDF7; --ink:#2A2118; --slate:#33414F; --slate-2:#44576A;
+  --mint:#2FAE7B; --line:#E4D6BE; --shadow:0 4px 0 rgba(0,0,0,.18);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{font-family:"Chalkboard SE","Comic Sans MS","Trebuchet MS",system-ui,-apple-system,sans-serif;
+  font-weight:700;color:var(--ink);background:var(--slate);overflow:hidden;user-select:none}
+button{font-family:inherit;font-weight:800;border:none;cursor:pointer;color:var(--ink)}
+button:focus-visible{outline:4px solid #6FC3FF;outline-offset:2px}
+input{font-family:inherit}
+
+#app{display:grid;grid-template-rows:auto 1fr;position:fixed;inset:0;height:100%;height:100dvh}
+#bootmsg{position:fixed;inset:0;z-index:99;background:var(--cream);padding:26px 20px;font-size:17px;display:none;overflow:auto}
+#bootmsg.on{display:block}
+#bootmsg code{display:block;background:#fff;border:2px solid var(--line);border-radius:8px;padding:10px;font-size:13px;margin-top:10px;font-family:monospace;white-space:pre-wrap}
+
+header{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--red);border-bottom:5px solid var(--red-dark)}
+.brand{display:flex;align-items:center;gap:8px;color:#fff;font-size:22px;line-height:1}
+.brand .bird{font-size:28px}
+.brand small{display:block;font-size:11px;font-weight:500;opacity:.85;letter-spacing:1px}
+.head-right{margin-left:auto;display:flex;gap:7px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.pill{background:rgba(255,255,255,.15);color:#fff;border-radius:999px;padding:7px 11px;font-size:14px}
+.toggle{background:rgba(0,0,0,.18);color:#fff;border-radius:999px;padding:9px 11px;font-size:18px;line-height:1}
+.toggle.off{opacity:.4}
+
+main{display:grid;grid-template-columns:92px 1fr 350px;min-height:0}
+#rail{background:var(--slate-2);display:flex;flex-direction:column;gap:6px;padding:8px 6px;overflow:auto}
+.cat{background:transparent;color:#fff;border-radius:14px;padding:9px 2px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px}
+.cat .ic{font-size:26px;line-height:1.1}
+.cat.on{background:var(--sun);color:var(--ink)}
+
+#board{background:var(--cream);overflow:auto;padding:12px}
+#editbar{display:none;background:#2A3A48;color:#fff;border-radius:14px;padding:9px 10px;margin-bottom:10px;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px}
+body.editing #editbar{display:flex}
+#editbar button{background:var(--sun);border-radius:10px;padding:8px 11px;font-size:14px}
+#editbar .note{font-weight:500;opacity:.85;flex:1;min-width:150px}
+
+#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px}
+.tile{background:var(--paper);border-radius:18px;border:3px solid var(--line);box-shadow:var(--shadow);
+  padding:10px 6px 8px;display:flex;flex-direction:column;align-items:center;gap:2px;min-height:132px;justify-content:center;position:relative}
+.tile:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.18)}
+.tile .ic{font-size:44px;line-height:1}
+.tile .ic.duo{font-size:31px;letter-spacing:-3px}
+.ic.art{display:inline-flex;align-items:center;justify-content:center;line-height:0}
+.ic.art svg{width:1em;height:1em;display:block}
+.sheet-head .ic svg,.iconprev svg{width:1em;height:1em;vertical-align:middle}
+.emo svg{width:25px;height:25px;display:block;margin:0 auto}
+#pickScrim{z-index:30}
+#pickBody .emopick{max-height:none;grid-template-columns:repeat(auto-fill,minmax(56px,1fr));gap:7px}
+#pickBody .emo{font-size:32px;padding:9px 0}
+#pickBody .emo svg{width:32px;height:32px}
+.addrow button.emobtn{min-width:48px;font-size:22px;line-height:1;padding:7px 10px}
+.addrow button.emobtn .mini{width:26px;height:26px;vertical-align:-.3em}
+.line .lic svg{width:1em;height:1em;display:block}
+.mini{display:inline-block;width:1.15em;height:1.15em;vertical-align:-.22em}
+.mini svg{width:100%;height:100%;display:block}
+.wantopt{font-size:13px;font-weight:500;padding-left:15px;position:relative;line-height:1.5;color:#5C4F3D}
+.wantopt::before{content:"•";position:absolute;left:4px}
+.wantline .idx{background:var(--sun);border:2px solid #E0A81F;border-radius:999px;padding:0 7px;font-size:12px;margin-right:5px}
+.tile .nm{font-size:15px;text-align:center;line-height:1.1}
+.tile .pr{font-size:14px;color:var(--red)}
+.tile.free .pr{color:var(--mint)}
+.tile .tag{position:absolute;top:5px;right:7px;font-size:13px;opacity:.55}
+.tile .pencil{position:absolute;top:-9px;right:-9px;width:31px;height:31px;border-radius:50%;background:var(--sun);
+  border:3px solid var(--cream);font-size:14px;display:none;align-items:center;justify-content:center}
+body.editing .tile .pencil{display:flex}
+.tile.add{background:var(--sun);border-color:#E0A81F;border-style:dashed}
+.startmsg{grid-column:1/-1;background:var(--sun);border:3px solid #E0A81F;border-radius:16px;
+  padding:14px 16px;font-size:17px;line-height:1.45;text-align:center}
+.startmsg b{display:block;font-size:22px;margin-top:4px}
+.tile.mode{min-height:150px;background:var(--paper);border-color:#E0A81F}
+.tile.mode .ic{font-size:52px}
+.tile.mode .nm{font-size:19px;margin-top:6px}
+body.needmode #rail{opacity:.35;pointer-events:none}
+
+#ticket{background:var(--slate);display:flex;flex-direction:column;min-height:0;padding:10px 10px 0}
+.paper{background:var(--paper);border-radius:10px 10px 0 0;flex:1;display:flex;flex-direction:column;min-height:0}
+.paper-head{padding:9px 12px 6px;border-bottom:2px dashed var(--line);text-align:center}
+.paper-head h2{margin:0;font-size:17px}
+.paper-head p{margin:2px 0 0;font-size:12px;font-weight:500;color:#8A7A63}
+#modeChip{margin-top:6px;background:var(--sun);border:3px solid #E0A81F;border-radius:999px;padding:6px 12px;font-size:15px;width:100%}
+#lines{flex:1;overflow:auto;padding:6px 10px}
+.empty{text-align:center;color:#A5947A;font-size:14px;font-weight:500;padding:24px 12px}
+.empty .big{font-size:40px;display:block;margin-bottom:6px}
+.line{display:grid;grid-template-columns:34px 1fr auto;gap:6px;align-items:start;padding:7px 0;border-bottom:1px dotted var(--line)}
+.line .lic{font-size:26px;line-height:1.2}
+.line .lname{font-size:15px;line-height:1.15}
+.line .lmods{font-size:12px;font-weight:500;color:#8A7A63;line-height:1.35}
+.line .lprice{font-size:15px;text-align:right}
+.lineTop{display:grid;grid-template-columns:34px 1fr auto;gap:6px;align-items:start;width:100%;
+  background:transparent;text-align:left;padding:2px;border-radius:10px}
+.lineTop:active{background:var(--cream)}
+.ledit{display:block;font-size:12px;opacity:.5;margin-top:2px}
+.qty{grid-column:2/4;display:flex;gap:6px;align-items:center;margin-top:4px}
+.qbtn{width:34px;height:34px;border-radius:10px;background:var(--cream);border:2px solid var(--line);font-size:17px}
+.qnum{font-size:16px;min-width:22px;text-align:center}
+.totals{padding:8px 12px;border-top:2px dashed var(--line);font-size:14px}
+.trow{display:flex;justify-content:space-between;margin:2px 0;font-weight:500}
+.trow.grand{font-size:24px;font-weight:800;margin-top:4px}
+.tear{height:12px;background:linear-gradient(45deg,var(--paper) 34%,transparent 34%) 0 0/16px 16px repeat-x,
+  linear-gradient(-45deg,var(--paper) 34%,transparent 34%) 0 0/16px 16px repeat-x}
+.ticket-btns{display:flex;gap:8px;padding:10px 0 12px}
+.bigbtn{flex:1;border-radius:16px;padding:14px 8px;font-size:19px;box-shadow:var(--shadow)}
+.bigbtn:active{transform:translateY(3px);box-shadow:none}
+.pay{background:var(--mint);color:#fff}
+.clear{background:var(--slate-2);color:#fff;flex:0 0 64px;font-size:22px}
+.ghost{background:var(--slate-2);color:#fff}
+.danger{background:var(--red);color:#fff}
+
+.scrim{position:fixed;inset:0;background:rgba(20,14,8,.6);display:none;z-index:20;align-items:center;justify-content:center;padding:14px}
+.scrim.on{display:flex}
+.sheet{background:var(--cream);border-radius:22px;width:100%;max-width:620px;max-height:94vh;max-height:94dvh;
+  display:flex;flex-direction:column;overflow:hidden;border:5px solid var(--red)}
+.sheet-head{background:var(--red);color:#fff;padding:10px 14px;display:flex;align-items:center;gap:10px}
+.sheet-head .ic{font-size:34px}
+.sheet-head h3{margin:0;font-size:21px;line-height:1.1}
+.sheet-head .sub{font-size:13px;font-weight:500;opacity:.9}
+.sheet-head .x{margin-left:auto;background:rgba(0,0,0,.2);color:#fff;width:40px;height:40px;border-radius:50%;font-size:20px;flex:0 0 40px}
+.sheet-body{padding:12px 14px;overflow:auto;flex:1;-webkit-overflow-scrolling:touch}
+.sheet-foot{padding:10px 14px 14px;display:flex;gap:8px;background:var(--cream)}
+.grp{margin-bottom:14px}
+.grp h4{margin:0 0 7px;font-size:15px;color:#7A6A55}
+.opts{display:grid;grid-template-columns:repeat(auto-fill,minmax(108px,1fr));gap:8px}
+.opt{background:var(--paper);border:3px solid var(--line);border-radius:14px;padding:9px 5px;
+  display:flex;flex-direction:column;align-items:center;gap:2px;font-size:14px;text-align:center;line-height:1.1}
+.opt .ic{font-size:28px;line-height:1;position:relative;display:inline-block;min-width:32px}
+.opt .ic.slash{filter:grayscale(.85);opacity:.8}
+.opt .ic.slash::after{content:"";position:absolute;left:-1px;right:-1px;top:46%;height:5px;background:var(--red);border-radius:3px;transform:rotate(-22deg)}
+.opt .d{font-size:12px;color:var(--red)}
+.opt.on{background:var(--sun);border-color:#E0A81F}
+.opt.big{padding:18px 6px;font-size:17px}
+.opt.big .ic{font-size:40px}
+
+.field{margin-bottom:13px}
+.field label{display:block;font-size:14px;color:#7A6A55;margin-bottom:5px}
+.field input{width:100%;font-size:19px;font-weight:700;padding:10px 12px;border:3px solid var(--line);border-radius:12px;background:var(--paper);color:var(--ink)}
+.field input:focus{outline:none;border-color:var(--sun)}
+.iconprev{font-size:40px;text-align:center;background:var(--paper);border:3px solid var(--line);border-radius:12px;padding:6px;margin-bottom:6px}
+.emopick{display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:5px;max-height:132px;overflow:auto;padding:5px;background:var(--paper);border:3px solid var(--line);border-radius:12px}
+.emo{background:transparent;font-size:25px;padding:5px 0;border-radius:9px;line-height:1}
+.emo.on{background:var(--sun)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;min-height:8px}
+.chip{background:var(--paper);border:3px solid var(--line);border-radius:999px;padding:5px 7px 5px 10px;font-size:14px;display:flex;align-items:center;gap:6px}
+.chip .x{background:var(--red);color:#fff;width:22px;height:22px;border-radius:50%;font-size:12px;line-height:1}
+.chip.money{border-color:#A9D9BE;background:#EDF9F2}
+.presets{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
+.preset{background:var(--sun);border-radius:999px;padding:5px 10px;font-size:13px}
+.addrow{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.addrow input{flex:1;font-size:16px;padding:8px 10px;border:3px solid var(--line);border-radius:11px;background:var(--paper);min-width:0}
+.addrow input.p{flex:0 0 78px}
+.addrow button{background:var(--mint);color:#fff;border-radius:11px;padding:9px 12px;font-size:16px}
+.addrow button.emobtn{background:var(--sun);color:var(--ink)}
+.seg{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:13px}
+.seg button{flex:1;min-width:94px;background:var(--paper);border:3px solid var(--line);border-radius:12px;padding:10px 6px;font-size:15px}
+.seg button.on{background:var(--sun);border-color:#E0A81F}
+.qbox{background:var(--paper);border:3px solid var(--line);border-radius:14px;padding:9px 10px;margin-bottom:9px}
+.qbox .qhead{display:flex;gap:6px;margin-bottom:7px}
+.qbox .qhead input{flex:1;font-size:16px;font-weight:800;padding:7px 9px;border:3px solid var(--line);border-radius:10px;background:var(--cream);min-width:0}
+.qbox .qhead button{background:var(--red);color:#fff;border-radius:10px;padding:7px 11px;font-size:15px}
+textarea#jsonBox{width:100%;height:210px;font-family:monospace;font-size:12px;padding:10px;border:3px solid var(--line);border-radius:12px;background:var(--paper);color:var(--ink)}
+
+.money-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.bill{border-radius:14px;padding:14px 4px;font-size:18px;background:#DFF3E6;border:3px solid #A9D9BE;box-shadow:var(--shadow)}
+.coin{background:#F0E7D2;border-color:#D8C6A0}
+.paydash{background:var(--paper);border:3px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:12px}
+.paydash .row{display:flex;justify-content:space-between;font-size:17px;margin:3px 0}
+.paydash .row.change{font-size:26px;color:var(--mint)}
+.paydash .row.short{font-size:20px;color:var(--red)}
+.cardbox{text-align:center;padding:8px 0 4px}
+.creditcard{width:230px;max-width:80%;margin:0 auto 14px;background:linear-gradient(135deg,#3C6E9F,#254B70);border-radius:14px;padding:14px;color:#fff;text-align:left;box-shadow:0 6px 0 rgba(0,0,0,.2)}
+.creditcard .chip2{width:38px;height:28px;background:linear-gradient(135deg,#F0D080,#C9A14A);border-radius:6px;margin-bottom:16px}
+.creditcard .no{font-size:16px;letter-spacing:2px}
+.creditcard .nm{font-size:12px;opacity:.85;margin-top:6px}
+.reader{font-size:17px;font-weight:500;color:#7A6A55;margin-bottom:10px}
+.dots span{animation:blink 1s infinite}
+.dots span:nth-child(2){animation-delay:.2s}
+.dots span:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,100%{opacity:.2}50%{opacity:1}}
+.celebrate{text-align:center;padding:18px 10px}
+.celebrate .big{font-size:70px;display:block;animation:pop .5s ease}
+.celebrate h3{font-size:26px;margin:8px 0 4px}
+.celebrate p{font-size:17px;font-weight:500;margin:0}
+@keyframes pop{0%{transform:scale(.3) rotate(-14deg)}70%{transform:scale(1.15)}100%{transform:scale(1)}}
+
+#customer{background:var(--sun);border-radius:14px;padding:9px 11px;margin-bottom:10px;display:none;border:3px solid #E0A81F}
+#customer.on{display:block}
+#customer h4{margin:0 0 6px;font-size:15px}
+.wantline{background:var(--paper);border:2px solid #E0A81F;border-radius:11px;padding:6px 9px;margin-bottom:5px;font-size:14px;line-height:1.35}
+.wantline b{font-size:15px}
+.wantfoot{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;font-size:14px}
+.wantfoot span{background:var(--paper);border:2px solid #E0A81F;border-radius:999px;padding:4px 10px}
+
+.checkrow{display:flex;gap:9px;align-items:flex-start;background:var(--paper);border:3px solid var(--line);border-radius:13px;padding:9px 11px;margin-bottom:7px;font-size:15px;line-height:1.35}
+.checkrow.good{border-color:#A9D9BE;background:#EDF9F2}
+.checkrow.bad{border-color:#F0B4AE;background:#FDEEEC}
+.checkrow .mark{font-size:22px;line-height:1.1}
+.checkrow small{display:block;font-weight:500;color:#7A6A55;font-size:13px}
+
+.histcard{background:var(--paper);border:3px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:9px}
+.histcard .top{display:flex;align-items:center;gap:8px;font-size:16px;margin-bottom:6px;flex-wrap:wrap}
+.histcard .top .num{background:var(--sun);border-radius:999px;padding:3px 10px}
+.histcard .top .tot{margin-left:auto;font-size:18px}
+.histcard .it{font-size:14px;font-weight:500;line-height:1.4;color:#5C4F3D}
+.histcard.perfect{border-color:#A9D9BE}
+
+/* ---- the readable menu - M. Tembo - 9/6/26 ---- */
+#menuScrim .sheet{max-width:720px;background:var(--paper)}
+#menuBody{background:var(--paper)}
+.mhead{text-align:center;margin:0 0 16px;padding-bottom:12px;border-bottom:4px double var(--red)}
+.mhead h1{margin:0;font-size:30px;line-height:1.1}
+.mhead p{margin:4px 0 0;font-size:14px;font-weight:500;color:#8A7A63;letter-spacing:1px}
+.mcat{font-size:19px;margin:18px 0 9px;color:var(--red);border-bottom:3px solid var(--sun);padding-bottom:3px;
+  break-after:avoid;page-break-after:avoid}
+.mcat:first-of-type{margin-top:0}
+.mitem{margin-bottom:10px;break-inside:avoid;page-break-inside:avoid}
+.mtop{display:flex;align-items:baseline;gap:7px;font-size:17px}
+.mic{font-size:22px;line-height:1;flex:0 0 auto}
+.mic svg{width:22px;height:22px;display:inline-block;vertical-align:-4px}
+.mdots{flex:1;border-bottom:2px dotted #CDBA95;min-width:12px;position:relative;top:-4px}
+.mprice{font-weight:800;white-space:nowrap}
+.mnote{font-size:13px;font-weight:500;color:#6E6152;margin:2px 0 0 30px;line-height:1.45}
+.mnote b{color:#4E4436}
+@media print{
+  html,body{height:auto;overflow:visible;background:#fff}
+  #app,#drawerbar{display:none!important}
+  .scrim{display:none!important}
+  .scrim#menuScrim.on{display:block!important;position:static;padding:0;background:#fff}
+  #menuScrim .sheet{max-width:100%;max-height:none;border:none;border-radius:0;background:#fff;overflow:visible}
+  #menuScrim .sheet-head{background:#fff;color:#000;padding:0;display:none}
+  #menuScrim .sheet-foot{display:none!important}
+  #menuBody{overflow:visible;padding:0;column-count:2;column-gap:28px}
+  .mhead h1{font-size:26px}
+}
+table.pmatrix{width:100%;border-collapse:collapse;background:var(--paper);border:3px solid var(--line);border-radius:12px;overflow:hidden}
+table.pmatrix th,table.pmatrix td{padding:8px 10px;font-size:15px;text-align:left;border-bottom:2px solid var(--line)}
+table.pmatrix th{background:var(--sun);font-size:14px}
+table.pmatrix tr:last-child td{border-bottom:none}
+table.pmatrix input{width:74px;font-size:16px;font-weight:800;padding:6px 8px;border:3px solid var(--line);
+  border-radius:9px;background:var(--cream);color:var(--ink);text-align:right}
+.pnote{font-size:14px;font-weight:500;line-height:1.5;color:#5C4F3D;margin:12px 0 0}
+.pexample{background:var(--paper);border:3px solid var(--line);border-radius:12px;padding:9px 11px;
+  margin-top:8px;font-size:14px;font-weight:500;line-height:1.5}
+.pexample b{font-weight:800}
+#drawerbar{display:none}
+@media (max-width:900px){
+  main{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+  #rail{flex-direction:row;overflow-x:auto;padding:6px;gap:5px}
+  .cat{flex:0 0 66px;padding:6px 2px}
+  .cat .ic{font-size:22px}
+  #ticket{position:fixed;left:0;right:0;bottom:0;height:82vh;height:82dvh;z-index:15;border-radius:18px 18px 0 0;
+    transition:transform .25s ease;box-shadow:0 -8px 30px rgba(0,0,0,.35)}
+  #ticket:not(.open){transform:translateY(110%)}
+  #ticket.open{transform:translateY(0)}
+  #drawerbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:14;background:var(--mint);color:#fff;
+    padding:11px 14px;align-items:center;gap:9px;font-size:18px;box-shadow:0 -4px 16px rgba(0,0,0,.25)}
+  #drawerbar .cnt{background:rgba(0,0,0,.2);border-radius:999px;padding:3px 10px;font-size:15px}
+  #drawerbar .tot{margin-left:auto;font-size:22px}
+  #board{padding-bottom:84px}
+  .close-drawer{display:block !important}
+}
+.close-drawer{display:none;background:var(--slate-2);color:#fff;border-radius:12px;padding:8px;font-size:16px;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<noscript><div style="background:#FFF4E2;padding:26px 20px;font-size:17px">
+<h2>This app needs JavaScript.</h2><p>Open it in Chrome or Safari, not a file preview window.</p></div></noscript>
+<div id="bootmsg"><h2>🐔 Something stopped the menu from loading.</h2><p>Send this line to Dad:</p><code id="bootwhy"></code></div>
+
+<div id="app">
+  <header>
+    <div class="brand"><span class="bird">🐔</span><span>Auggie's<small>NEW RESTAURANT</small></span></div>
+    <div class="head-right">
+      <div class="pill">🎫 <span id="ordnum">1</span></div>
+      <div class="pill">⭐ <span id="starcount">0</span></div>
+      <button class="toggle" id="menuBtn" title="Printable menu">📖</button>
+      <button class="toggle" id="priceBtn" title="How pricing works">💲</button>
+      <button class="toggle" id="histBtn" title="Past orders">🧾</button>
+      <button class="toggle" id="talkBtn" title="Read out loud">🔊</button>
+      <button class="toggle" id="custBtn" title="Pretend customer">🧑</button>
+      <button class="toggle" id="editBtn" title="Edit the menu">✏️</button>
+    </div>
+  </header>
+
+  <main>
+    <nav id="rail"></nav>
+    <section id="board">
+      <div id="editbar">
+        <span class="note">✏️ Editing. Tap any food to change it.</span>
+        <button id="exportBtn">📤 Export</button>
+        <button id="importBtn">📥 Import</button>
+        <button id="resetAllBtn">♻️ Reset all</button>
+      </div>
+      <div id="customer"></div>
+      <div id="grid"></div>
+    </section>
+
+    <aside id="ticket">
+      <button class="close-drawer" id="closeDrawer">⬇ Back to the menu</button>
+      <div class="paper">
+        <div class="paper-head">
+          <h2>🐔 Auggie's New Restaurant</h2>
+          <p>Order #<span id="ordnum2">1</span> · Thanks for coming in!</p>
+          <button id="modeChip">🍽️ For here</button>
+        </div>
+        <div id="lines"></div>
+        <div class="totals">
+          <div class="trow"><span>Food</span><span id="sub">$0.00</span></div>
+          <div class="trow"><span>Tax</span><span id="tax">$0.00</span></div>
+          <div class="trow grand"><span>Total</span><span id="grand">$0.00</span></div>
+        </div>
+      </div>
+      <div class="tear"></div>
+      <div class="ticket-btns">
+        <button class="bigbtn clear" id="clearBtn">🗑</button>
+        <button class="bigbtn pay" id="payBtn">💳 Take payment</button>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<div id="drawerbar"><span>🧾</span><span class="cnt" id="barCount">0</span><span id="barMode">🍽️</span><span class="tot" id="barTotal">$0.00</span></div>
+
+<div class="scrim" id="modeScrim"><div class="sheet">
+  <div class="sheet-head"><span class="ic">👋</span><div><h3>Is this for here or to go?</h3>
+    <div class="sub">Ask the customer first</div></div><button class="x" id="modeX">✕</button></div>
+  <div class="sheet-body" id="modeBody"></div>
+</div></div>
+
+<div class="scrim" id="optScrim"><div class="sheet">
+  <div class="sheet-head"><span class="ic" id="optIc">🍔</span>
+    <div><h3 id="optName">Item</h3><div class="sub" id="optPrice">$0.00</div></div>
+    <button class="x" id="optX">✕</button></div>
+  <div class="sheet-body" id="optBody"></div>
+  <div class="sheet-foot" id="optFoot"></div>
+</div></div>
+
+<div class="scrim" id="checkScrim"><div class="sheet">
+  <div class="sheet-head"><span class="ic" id="chkIc">🔍</span>
+    <div><h3 id="chkTitle">Check the order</h3><div class="sub" id="chkSub"></div></div>
+    <button class="x" id="chkX">✕</button></div>
+  <div class="sheet-body" id="chkBody"></div>
+  <div class="sheet-foot" id="chkFoot"></div>
+</div></div>
+
+<div class="scrim" id="editScrim"><div class="sheet">
+  <div class="sheet-head"><span class="ic" id="edIc">🌟</span>
+    <div><h3 id="edTitle">Edit food</h3><div class="sub">Change anything, then save</div></div>
+    <button class="x" id="edX">✕</button></div>
+  <div class="sheet-body" id="edBody"></div>
+  <div class="sheet-foot" id="edFoot"></div>
+</div></div>
+
+<div class="scrim" id="payScrim"><div class="sheet">
+  <div class="sheet-head"><span class="ic" id="payIc">💳</span>
+    <div><h3 id="payTitle">Take payment</h3><div class="sub" id="paySub"></div></div>
+    <button class="x" id="payX">✕</button></div>
+  <div class="sheet-body" id="payBody"></div>
+  <div class="sheet-foot" id="payFoot"></div>
+</div></div>
+
+<div class="scrim" id="priceScrim"><div class="sheet">
+  <div class="sheet-head"><span class="ic">💲</span>
+    <div><h3>How pricing works</h3><div class="sub">Change a number and every price follows</div></div>
+    <button class="x" id="priceX">✕</button></div>
+  <div class="sheet-body" id="priceBody"></div>
+  <div class="sheet-foot"><button class="bigbtn ghost" id="priceReset">♻️ Back to normal</button>
+    <button class="bigbtn pay" id="priceClose">Done</button></div>
+</div></div>
+
+<div class="scrim" id="menuScrim"><div class="sheet">
+  <div class="sheet-head"><span class="ic">📖</span>
+    <div><h3>The menu</h3><div class="sub">Everything we serve right now</div></div>
+    <button class="x" id="menuX">✕</button></div>
+  <div class="sheet-body" id="menuBody"></div>
+  <div class="sheet-foot">
+    <button class="bigbtn ghost" id="menuClose">Close</button>
+    <button class="bigbtn pay" id="menuPrint">🖨️ Print this menu</button>
+  </div>
+</div></div>
+
+<div class="scrim" id="histScrim"><div class="sheet">
+  <div class="sheet-head"><span class="ic">🧾</span>
+    <div><h3>Today's orders</h3><div class="sub" id="histSub"></div></div>
+    <button class="x" id="histX">✕</button></div>
+  <div class="sheet-body" id="histBody"></div>
+</div></div>
+
+<div class="scrim" id="pickScrim"><div class="sheet">
+  <div class="sheet-head"><span class="ic">🎨</span>
+    <div><h3>Pick a picture</h3><div class="sub">Tap the one you want</div></div>
+    <button class="x" id="pickX">✕</button></div>
+  <div class="sheet-body" id="pickBody"></div>
+</div></div>
+
+<div class="scrim" id="jsonScrim"><div class="sheet">
+  <div class="sheet-head"><span class="ic">💾</span>
+    <div><h3 id="jsonTitle">Menu file</h3><div class="sub" id="jsonSub"></div></div>
+    <button class="x" id="jsonX">✕</button></div>
+  <div class="sheet-body"><textarea id="jsonBox" spellcheck="false"></textarea></div>
+  <div class="sheet-foot" id="jsonFoot"></div>
+</div></div>
+
+<script>
+"use strict";
+window.onerror = function(msg,s,line,col){
+  var b=document.getElementById("bootmsg"), w=document.getElementById("bootwhy");
+  if(b&&w){ w.textContent=msg+"  (line "+line+":"+col+")"; b.className="on"; } return false;
+};
+function $(id){ return document.getElementById(id); }
+function money(n){ return "$"+(Math.round(n*100)/100).toFixed(2); }
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+function cap(t){ return t.charAt(0).toUpperCase()+t.slice(1); }
+function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
+function iconCount(s){ try{ return (s.match(/\p{Extended_Pictographic}/gu)||[]).length; }catch(e){ return s.length>2?2:1; } }
+/* ---- hand-drawn icons for foods emoji doesn't have - M. Tembo - 9/6/26 ---- */
+function sv(i){ return '<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">'+i+'</svg>'; }
+var BUN_T='<path d="M7 31C7 17 18 9 32 9s25 8 25 22z" fill="#EDB25C"/><ellipse cx="20" cy="19" rx="6" ry="3" fill="#F5C57C" opacity=".7"/>';
+var BUN_B='<path d="M6 43h52c0 6-5 10-11 10H17c-6 0-11-4-11-10z" fill="#DE9F4B"/>';
+function patty(c){ return '<rect x="3" y="30" width="58" height="13" rx="6" fill="'+c+'"/>'+
+ '<circle cx="9" cy="31" r="4.5" fill="'+c+'"/><circle cx="23" cy="29" r="4.5" fill="'+c+'"/>'+
+ '<circle cx="41" cy="29" r="4.5" fill="'+c+'"/><circle cx="55" cy="31" r="4.5" fill="'+c+'"/>'; }
+var PICK='<circle cx="22" cy="44" r="5" fill="#84B93F"/><circle cx="42" cy="44" r="5" fill="#84B93F"/>'+
+ '<circle cx="22" cy="44" r="2" fill="#6C9C31"/><circle cx="42" cy="44" r="2" fill="#6C9C31"/>';
+function nug(x,y,r,f){ return '<ellipse cx="'+x+'" cy="'+y+'" rx="10" ry="7" fill="'+f+'" transform="rotate('+r+' '+x+' '+y+')"/>'; }
+function cup(body,liquid,rim){ return ''+   /* keep on this line: ASI ate the value - M. Tembo - 9/6/26 */
+ '<path d="M17 18h30l-4 38a5 5 0 0 1-5 4H26a5 5 0 0 1-5-4z" fill="'+body+'" stroke="#D8D1BF" stroke-width="2"/>'+
+ '<path d="M20 27h24l-3 28a3 3 0 0 1-3 3H26a3 3 0 0 1-3-3z" fill="'+liquid+'"/>'+
+ '<ellipse cx="32" cy="18" rx="15" ry="4.5" fill="'+(rim||"#EFE9DA")+'"/>'; }
+var STRAW='<rect x="38" y="2" width="6" height="24" rx="3" fill="#E23B2E" transform="rotate(14 41 14)"/>';
+function friesCarton(c){ return sv('<g fill="'+c+'">'+
+ '<rect x="17" y="6" width="7" height="31" rx="3.5" transform="rotate(-9 20 21)"/>'+
+ '<rect x="28" y="3" width="7" height="34" rx="3.5"/>'+
+ '<rect x="39" y="7" width="7" height="30" rx="3.5" transform="rotate(10 42 22)"/>'+
+ '<rect x="23" y="12" width="7" height="26" rx="3.5" transform="rotate(-17 26 25)"/>'+
+ '<rect x="34" y="11" width="7" height="27" rx="3.5" transform="rotate(15 37 24)"/></g>'+
+ '<path d="M14 34h36l-4 24H18z" fill="#E23B2E"/><path d="M11 30h42l-2 7H13z" fill="#C43025"/>'); }
+function pizzaSlice(top){ return sv(
+ '<path d="M32 4 60 50H4z" fill="#F2C55C"/>'+
+ '<path d="M32 13 51 46H13z" fill="#F8D888" opacity=".6"/>'+
+ '<path d="M4 50h56c0 6-4 9-9 9H13c-5 0-9-3-9-9z" fill="#DFA347"/>'+
+ '<path d="M4 50h56v2.5H4z" fill="#C98B33" opacity=".45"/>'+top); }
+function pep(x,y,r){ return '<circle cx="'+x+'" cy="'+y+'" r="'+r+'" fill="#C13F2E"/>'+
+ '<circle cx="'+x+'" cy="'+y+'" r="'+(r*0.6)+'" fill="#D9564380" opacity=".55"/>'; }
+function sauceCup(c,extra){ return sv(
+ '<path d="M17 25h30l-4 25a5 5 0 0 1-5 4H26a5 5 0 0 1-5-4z" fill="#F1ECE0" stroke="#D6CFBE" stroke-width="2"/>'+
+ '<ellipse cx="32" cy="25" rx="15" ry="5" fill="'+c+'"/>'+
+ '<ellipse cx="32" cy="24" rx="10" ry="3" fill="#000" opacity=".09"/>'+(extra||'')); }
+function fry(x,y,r){ return '<g transform="rotate('+r+' '+(x+8)+' '+(y+8)+')">'+
+ '<rect x="'+x+'" y="'+y+'" width="17" height="17" rx="3" fill="#F0B84E"/>'+
+ '<rect x="'+(x+4)+'" y="'+(y+4)+'" width="3.5" height="3.5" fill="#FFF4E2"/>'+
+ '<rect x="'+(x+10)+'" y="'+(y+4)+'" width="3.5" height="3.5" fill="#FFF4E2"/>'+
+ '<rect x="'+(x+4)+'" y="'+(y+10)+'" width="3.5" height="3.5" fill="#FFF4E2"/>'+
+ '<rect x="'+(x+10)+'" y="'+(y+10)+'" width="3.5" height="3.5" fill="#FFF4E2"/></g>'; }
+var BOX_RED='<path d="M13 30h38l-4 25H17z" fill="#E23B2E"/><rect x="11" y="26" width="42" height="7" rx="3" fill="#C43025"/>';
+var STAR='<path d="M32 36l2.6 5.3 5.8.9-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.9z" fill="#FFC53D"/>';
+
+var ART={
+ sandwich: sv(BUN_T+patty("#D98E3C")+BUN_B+PICK),
+ spicy: sv(BUN_T+patty("#C9702F")+
+   '<circle cx="18" cy="36" r="1.8" fill="#B5251C"/><circle cx="30" cy="34" r="1.8" fill="#B5251C"/>'+
+   '<circle cx="44" cy="37" r="1.8" fill="#B5251C"/>'+BUN_B+PICK+
+   '<path d="M52 12c4 1 6 5 5 9-3-1-4-3-4-5-2 1-4 0-5-2 2-1 3-2 4-2z" fill="#E23B2E"/>'),
+ deluxe: sv(BUN_T+patty("#D98E3C")+
+   '<path d="M7 41l6 5h38l6-5z" fill="#F5C244"/>'+
+   '<path d="M5 45c5-4 8 2 13-2s8 4 13 0 8 4 13 0 8 3 13-1v5H5z" fill="#6CBF5A"/>'+
+   '<circle cx="44" cy="46" r="5.5" fill="#E2453B"/><circle cx="44" cy="46" r="2.5" fill="#F07268"/>'+BUN_B),
+ nuggets: sv(nug(23,17,-12,"#E9A959")+nug(41,15,9,"#EFB468")+nug(32,26,4,"#E09A45")+BOX_RED),
+ strips: sv('<g fill="#E9A959">'+
+   '<rect x="7" y="11" width="48" height="12" rx="6" transform="rotate(-6 31 17)"/>'+
+   '<rect x="7" y="26" width="48" height="12" rx="6" transform="rotate(4 31 32)"/>'+
+   '<rect x="7" y="41" width="48" height="12" rx="6" transform="rotate(-3 31 47)"/></g>'+
+   '<g fill="#C9782F" opacity=".5"><circle cx="20" cy="16" r="1.6"/><circle cx="40" cy="18" r="1.6"/>'+
+   '<circle cx="26" cy="32" r="1.6"/><circle cx="44" cy="33" r="1.6"/><circle cx="22" cy="47" r="1.6"/>'+
+   '<circle cx="42" cy="46" r="1.6"/></g>'),
+ fries: sv(fry(14,8,-12)+fry(31,6,10)+fry(23,20,-3)+
+   '<path d="M14 34h36l-4 24H18z" fill="#E23B2E"/><path d="M11 30h42l-2 7H13z" fill="#C43025"/>'),
+ wings: sv('<g transform="rotate(-16 30 24)"><rect x="8" y="17" width="34" height="14" rx="7" fill="#D98E3C"/>'+
+   '<rect x="38" y="19" width="12" height="10" rx="5" fill="#F3E7D2"/></g>'+
+   '<g transform="rotate(14 28 44)"><ellipse cx="24" cy="44" rx="14" ry="11" fill="#E7A24C"/>'+
+   '<rect x="34" y="40" width="14" height="8" rx="4" fill="#F3E7D2"/>'+
+   '<circle cx="49" cy="40.5" r="3.6" fill="#F3E7D2"/><circle cx="49" cy="47.5" r="3.6" fill="#F3E7D2"/></g>'+
+   '<g fill="#C07C2E" opacity=".5"><circle cx="20" cy="45" r="1.7"/><circle cx="28" cy="49" r="1.5"/>'+
+   '<circle cx="24" cy="39" r="1.5"/><circle cx="19" cy="25" r="1.5"/><circle cx="30" cy="28" r="1.5"/></g>'),
+ "fries-reg": friesCarton("#F0B84E"),
+ "fries-sweet": friesCarton("#E5893A"),
+ mac: sv('<path d="M7 29h50c0 14-11 23-25 23S7 43 7 29z" fill="#F4EADA"/>'+
+   '<ellipse cx="32" cy="29" rx="25" ry="7" fill="#F5C244"/>'+
+   '<g stroke="#E0A02E" stroke-width="3" fill="none" stroke-linecap="round">'+
+   '<path d="M18 29a4 4 0 0 1 8 0"/><path d="M30 26a4 4 0 0 1 8 0"/><path d="M42 30a4 4 0 0 1 8 0"/>'+
+   '<path d="M24 33a4 4 0 0 1 8 0"/><path d="M36 33a4 4 0 0 1 8 0"/></g>'),
+ lemonade: sv(STRAW+cup("#FFFBEC","#FFE066")+
+   '<circle cx="45" cy="20" r="8" fill="#FFD93D" stroke="#EFB429" stroke-width="2"/>'+
+   '<path d="M45 13v14M38 20h14" stroke="#FFF6D0" stroke-width="1.8"/>'),
+ tea: sv(STRAW+cup("#FBF4E6","#B4651E")+
+   '<path d="M44 13a8 8 0 0 1 0 15z" fill="#FFD93D" stroke="#EFB429" stroke-width="1.6"/>'),
+ soda: sv(STRAW+cup("#F3F4F6","#5A3A28","#FFFFFF")+
+   '<rect x="15" y="14" width="34" height="8" rx="4" fill="#FAFAFA" stroke="#DDD" stroke-width="1.5"/>'+
+   '<rect x="21" y="33" width="22" height="6" rx="3" fill="#E23B2E" opacity=".85"/>'),
+ shake: sv('<rect x="39" y="3" width="6" height="26" rx="3" fill="#E23B2E" transform="rotate(15 42 16)"/>'+
+   '<path d="M21 23h22l-3 33a5 5 0 0 1-5 4H29a5 5 0 0 1-5-4z" fill="#FDF7EC" stroke="#E0D6C2" stroke-width="2"/>'+
+   '<path d="M24 31h16l-3 25a3 3 0 0 1-3 3H30a3 3 0 0 1-3-3z" fill="#C98A5E"/>'+
+   '<path d="M21 23c0-6 5-8 6-12 3 4 5 2 6-2 2 5 6 4 8 1 1 5 2 7 2 13z" fill="#FFFDF7"/>'+
+   '<circle cx="33" cy="8" r="4.5" fill="#E23B2E"/>'),
+ "kids-nuggets": sv('<path d="M21 22c0-7 5-11 11-11s11 4 11 11" stroke="#C43025" stroke-width="4" fill="none"/>'+
+   nug(24,26,-10,"#E9A959")+nug(41,25,8,"#EFB468")+
+   '<path d="M12 28h40l-4 27H16z" fill="#E23B2E"/>'+STAR),
+ "kids-strips": sv('<path d="M21 22c0-7 5-11 11-11s11 4 11 11" stroke="#C43025" stroke-width="4" fill="none"/>'+
+   '<g fill="#E9A959"><rect x="16" y="20" width="14" height="10" rx="5" transform="rotate(-8 23 25)"/>'+
+   '<rect x="34" y="19" width="14" height="10" rx="5" transform="rotate(7 41 24)"/></g>'+
+   '<path d="M12 28h40l-4 27H16z" fill="#E23B2E"/>'+STAR),
+ "sauce-ketchup": sauceCup("#D93A2B"),
+ "sauce-ranch": sauceCup("#FAF6E8"),
+ "sauce-bbq": sauceCup("#6E3A1B"),
+ "sauce-honey": sauceCup("#F2B430"),
+ "sauce-buffalo": sauceCup("#E2542B"),
+ "sauce-poly": sauceCup("#C4682B"),
+ "sauce-bleu": sauceCup("#F6F4EA",'<g fill="#6E7F94" opacity=".8"><circle cx="27" cy="24" r="1.5"/>'+
+   '<circle cx="36" cy="26" r="1.3"/><circle cx="32" cy="22.5" r="1.2"/><circle cx="40" cy="23.5" r="1.1"/>'+
+   '<circle cx="24" cy="26.5" r="1.1"/></g>'),
+ fish: sv(BUN_T+'<path d="M54 31l9-6v18l-9-6z" fill="#A8CBDE"/>'+
+   '<rect x="4" y="29" width="51" height="14" rx="3" fill="#EAC384"/>'+
+   '<g fill="#C9A05A" opacity=".7"><circle cx="14" cy="34" r="1.6"/><circle cx="24" cy="38" r="1.6"/>'+
+   '<circle cx="34" cy="33" r="1.6"/><circle cx="44" cy="38" r="1.6"/><circle cx="20" cy="41" r="1.4"/>'+
+   '<circle cx="40" cy="32" r="1.4"/></g>'+BUN_B),
+ "pizza-cheese": pizzaSlice('<circle cx="26" cy="33" r="3.4" fill="#FFEAA8"/>'+
+   '<circle cx="38" cy="27" r="2.8" fill="#FFEAA8"/><circle cx="33" cy="43" r="3.2" fill="#FFEAA8"/>'+
+   '<circle cx="20" cy="44" r="2.4" fill="#FFEAA8"/>'),
+ "pizza-pepperoni": pizzaSlice(pep(32,18,4)+pep(24,31,4.6)+pep(40,31,4.6)+pep(32,42,4.6)+pep(19,44,3.8)+pep(45,44,3.8)),
+ "pizza-veggie": pizzaSlice(
+   '<g fill="none" stroke="#57AE4E" stroke-width="3">'+
+   '<circle cx="25" cy="30" r="4.6"/><circle cx="41" cy="33" r="4.6"/><circle cx="32" cy="45" r="4.2"/></g>'+
+   '<g fill="#3B3B3B"><circle cx="32" cy="19" r="3"/><circle cx="21" cy="43" r="2.8"/><circle cx="45" cy="44" r="2.8"/></g>'+
+   '<g fill="#FFF7E6"><circle cx="32" cy="19" r="1.1"/><circle cx="21" cy="43" r="1.1"/><circle cx="45" cy="44" r="1.1"/></g>'+
+   '<ellipse cx="36" cy="27" rx="4" ry="2.6" fill="#D9BC93" transform="rotate(-18 36 27)"/>'+
+   '<ellipse cx="24" cy="39" rx="4" ry="2.6" fill="#D9BC93" transform="rotate(12 24 39)"/>')
+};
+function isArt(s){ return typeof s==="string" && s.slice(0,4)==="art:"; }
+function icoInner(s){ return isArt(s) ? (ART[s.slice(4)]||"\u2753") : s; }
+function icHTML(s, extra){
+  if(isArt(s)) return '<span class="ic art'+(extra||"")+'">'+icoInner(s)+'</span>';
+  return '<span class="ic'+(iconCount(s)>1?" duo":"")+(extra||"")+'">'+s+'</span>';
+}
+function mini(s){ return isArt(s) ? '<span class="mini">'+icoInner(s)+'</span>' : s; }
+
+var store={ get:function(k,d){try{var v=localStorage.getItem(k);return v===null?d:JSON.parse(v);}catch(e){return d;}},
+            set:function(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}} };
+var sess ={ get:function(k,d){try{var v=sessionStorage.getItem(k);return v===null?d:JSON.parse(v);}catch(e){return d;}},
+            set:function(k,v){try{sessionStorage.setItem(k,JSON.stringify(v));}catch(e){}} };
+
+var CATS=[{id:"entrees",name:"Entrees",ic:"🍗"},{id:"sides",name:"Sides",ic:"🍟"},{id:"drinks",name:"Drinks",ic:"🥤"},
+          {id:"treats",name:"Treats",ic:"🍦"},{id:"sauces",name:"Extras",ic:"🥣"},{id:"kids",name:"Kids",ic:"🧸"}];
+
+var MODES=[{id:"here",label:"For here",ic:"🍽️"},{id:"togo",label:"To go",ic:"🛍️"},{id:"drive",label:"Drive-thru",ic:"🚗"}];
+function modeInfo(id){ var m=MODES[0]; MODES.forEach(function(x){ if(x.id===id) m=x; }); return m; }
+
+var BREAD_Q={name:"Bun or no bun?",opts:[     /* every sandwich can skip the bread - M. Tembo - 9/6/26 */
+  {label:"On a bun",ic:"\ud83c\udf5e",d:0},{label:"No bun",ic:"\ud83c\udf5e",d:0,slash:true}]};
+var DOG_BREAD_Q={name:"Bun or no bun?",opts:[
+  {label:"On a bun",ic:"\ud83c\udf2d",d:0},{label:"No bun",ic:"\ud83c\udf2d",d:0,slash:true}]};
+
+/* ================= base menu ================= */
+var MENU=[
+ {id:"sand",cat:"entrees",kidsok:true,also:["kids"],name:"Chicken Sandwich",ic:"art:sandwich",price:4.99,meal:true,
+  choices:[BREAD_Q],
+  extras:[{name:"pickles",ic:"\ud83e\udd52",price:0},{name:"lettuce",ic:"\ud83e\udd6c",price:0},
+          {name:"tomato",ic:"\ud83c\udf45",price:0},{name:"onion",ic:"\ud83e\uddc5",price:0},
+          {name:"mayo",ic:"\ud83e\udd63",price:0},{name:"sauce",ic:"\ud83e\udd63",price:0},
+          {name:"cheese",ic:"\ud83e\uddc0",price:.5},{name:"beef bacon",ic:"\ud83e\udd53",price:1}]},
+ {id:"spicy",cat:"entrees",kidsok:true,also:["kids"],name:"Spicy Chicken Sandwich",ic:"art:spicy",price:5.29,meal:true,
+  choices:[BREAD_Q],
+  extras:[{name:"pickles",ic:"\ud83e\udd52",price:0},{name:"lettuce",ic:"\ud83e\udd6c",price:0},
+          {name:"tomato",ic:"\ud83c\udf45",price:0},{name:"onion",ic:"\ud83e\uddc5",price:0},
+          {name:"mayo",ic:"\ud83e\udd63",price:0},{name:"spicy sauce",ic:"\ud83e\udd75",price:0},
+          {name:"cheese",ic:"\ud83e\uddc0",price:.5},{name:"beef bacon",ic:"\ud83e\udd53",price:1}]},
+ {id:"burger",cat:"entrees",name:"Burger",ic:"\ud83c\udf54",price:5.49,meal:true,
+  choices:[BREAD_Q],
+  extras:[{name:"cheese",ic:"\ud83e\uddc0",price:.5},{name:"lettuce",ic:"\ud83e\udd6c",price:0},
+          {name:"tomato",ic:"\ud83c\udf45",price:0},{name:"onion",ic:"\ud83e\uddc5",price:0},
+          {name:"pickles",ic:"\ud83e\udd52",price:0},{name:"ketchup",ic:"\ud83c\udf45",price:0},
+          {name:"mustard",ic:"\ud83c\udf2d",price:0},{name:"mayo",ic:"\ud83e\udd63",price:0},
+          {name:"beef bacon",ic:"\ud83e\udd53",price:1},{name:"second patty",ic:"\ud83e\udd69",price:2}]},
+ {id:"fish",cat:"entrees",kidsok:true,also:["kids"],name:"Fish Sandwich",ic:"art:fish",price:5.49,meal:true,
+  choices:[BREAD_Q],
+  extras:[{name:"tartar sauce",ic:"\ud83e\udd63",price:0},{name:"lettuce",ic:"\ud83e\udd6c",price:0},
+          {name:"tomato",ic:"\ud83c\udf45",price:0},{name:"pickles",ic:"\ud83e\udd52",price:0},
+          {name:"onion",ic:"\ud83e\uddc5",price:0},{name:"cheese",ic:"\ud83e\uddc0",price:.5}]},
+ {id:"dog",cat:"entrees",kidsok:true,also:["kids"],name:"Beef Hot Dog",ic:"\ud83c\udf2d",price:3.99,meal:true,
+  choices:[DOG_BREAD_Q],
+  extras:[{name:"ketchup",ic:"\ud83c\udf45",price:0},{name:"mustard",ic:"\ud83c\udf2d",price:0},
+          {name:"relish",ic:"\ud83e\udd52",price:0},{name:"onions",ic:"\ud83e\uddc5",price:0},
+          {name:"sauerkraut",ic:"\ud83e\udd6c",price:0},{name:"jalapenos",ic:"\ud83c\udf36\ufe0f",price:0},
+          {name:"shredded cheese",ic:"\ud83e\uddc0",price:.5},{name:"chili",ic:"\ud83c\udf72",price:1}]},
+ {id:"wings",cat:"entrees",kidsok:true,also:["kids"],name:"Chicken Wings",ic:"art:wings",price:6.99,meal:true,
+  choices:[{name:"How many?",opts:[{label:"3 wings",ic:"3️⃣",d:-2},{label:"5 wings",ic:"5️⃣",d:0},{label:"7 wings",ic:"7️⃣",d:2.5},{label:"10 wings",ic:"🔟",d:5},
+             {label:"20 wings",ic:"🎉",d:13}]},
+           {name:"Traditional or boneless?",opts:[{label:"Traditional",ic:"art:wings",d:0},
+             {label:"Boneless",ic:"🍗",d:0}]},
+           {name:"Flats or drums?",needs:{q:1,label:"Traditional"},
+            opts:[{label:"Mixed",ic:"🍽️",d:0},{label:"All flats",ic:"🍖",d:0},
+                  {label:"All drums",ic:"🍗",d:0}]},
+           {name:"How crispy?",opts:[{label:"Regular",ic:"🍗",d:0},{label:"Extra crispy",ic:"🔥",d:0}]},
+           {name:"Which flavor?",opts:[{label:"BBQ",ic:"🍖",d:0},{label:"Hot BBQ",ic:"🔥",d:0},
+             {label:"Sweet and spicy",ic:"🍬",d:0},{label:"Bourbon BBQ",ic:"🥃",d:0},
+             {label:"Buffalo",ic:"🥵",d:0},{label:"Hot (spicier)",ic:"🌶️",d:0},
+             {label:"Lemon pepper",ic:"🍋",d:0},{label:"Caribbean jerk",ic:"🌴",d:0},
+             {label:"Mango habanero",ic:"🥭",d:0},{label:"Teriyaki",ic:"🍜",d:0},
+             {label:"Honey mustard",ic:"🍯",d:0}]},
+           {name:"Dry or wet?",opts:[{label:"Tossed in sauce",ic:"🥣",d:0},
+             {label:"Dry rub",ic:"🧂",d:0},{label:"Sauce on the side",ic:"art:sauce-bbq",d:0}]},
+           {name:"Ranch or bleu cheese?",opts:[{label:"Ranch",ic:"art:sauce-ranch",d:0},
+             {label:"Bleu cheese",ic:"art:sauce-bleu",d:0},{label:"Both",ic:"🍽️",d:0},
+             {label:"Neither",ic:"🚫",d:0}]},
+           {name:"Carrots or celery?",opts:[{label:"Celery",ic:"🌿",d:0},
+             {label:"Carrots",ic:"🥕",d:0},{label:"Both",ic:"🍽️",d:0},
+             {label:"Neither",ic:"🚫",d:0}]}]},
+ {id:"nugs",cat:"entrees",name:"Nuggets",ic:"art:nuggets",price:3.99,meal:true,sauces:true,
+  choices:[{name:"How many?",opts:[{label:"5 pieces",ic:"5️⃣",d:0},{label:"8 pieces",ic:"8️⃣",d:1.3},{label:"12 pieces",ic:"🔟",d:3.5},{label:"30 pieces",ic:"🎉",d:9}]}]},
+ {id:"strips",cat:"entrees",name:"Chicken Strips",ic:"art:strips",price:5.49,meal:true,sauces:true,
+  choices:[{name:"How many?",opts:[{label:"3 strips",ic:"3️⃣",d:0},{label:"4 strips",ic:"4️⃣",d:1.2}]}]},
+ {id:"wrap",cat:"entrees",kidsok:true,also:["kids"],name:"Grilled Wrap",ic:"🌯",price:6.29,meal:true,
+  choices:[{name:"Which wrap?",opts:[{label:"Flour tortilla",ic:"\ud83e\uded3",d:0},{label:"Corn tortilla",ic:"\ud83c\udf3d",d:0},{label:"Lettuce wrap",ic:"\ud83e\udd6c",d:0}]}],
+  parts:[{name:"lettuce",ic:"🥬"},{name:"cheese",ic:"🧀"},{name:"ranch",ic:"🥣"}]},
+ {id:"salad",cat:"entrees",also:["sides"],name:"Salad",ic:"🥗",price:7.99,
+  parts:[{name:"cheese",ic:"\ud83e\uddc0"},{name:"tomatoes",ic:"\ud83c\udf45"},{name:"corn",ic:"\ud83c\udf3d"}],
+  choices:[{name:"Which meat?",opts:[{label:"Chicken",ic:"\ud83c\udf57",d:0},{label:"Steak",ic:"\ud83e\udd69",d:2.5},
+            {label:"Salmon",ic:"\ud83d\udc1f",d:3.5},{label:"No meat",ic:"\ud83e\udd6c",d:-1}]},
+           {name:"Which dressing?",opts:[{label:"Ranch",ic:"art:sauce-ranch",d:0},{label:"Bleu cheese",ic:"art:sauce-bleu",d:0},{label:"Honey mustard",ic:"🍯",d:0},{label:"Vinaigrette",ic:"🫒",d:0},{label:"No dressing",ic:"🚫",d:0}]}]},
+ {id:"soup",cat:"entrees",kidsok:true,also:["kids","sides"],name:"Chicken Soup",ic:"🍲",price:3.79,sizes:"food",meal:true},
+
+ {id:"taco",cat:"entrees",kidsok:true,also:["kids"],name:"Taco",ic:"🌮",price:3.49,meal:true,   /* M. Tembo - 9/6/26 */
+  choices:[{name:"Beef or chicken?",opts:[{label:"Beef",ic:"🥩",d:0},{label:"Chicken",ic:"🍗",d:0}]},
+           {name:"Which shell?",opts:[{label:"Hard shell",ic:"🌮",d:0},{label:"Soft shell",ic:"🫓",d:0}]},
+           {name:"How many?",opts:[{label:"1 taco",ic:"1️⃣",d:0},{label:"2 tacos",ic:"2️⃣",d:3},
+                                   {label:"3 tacos",ic:"3️⃣",d:5.5}]}],
+  extras:[{name:"lettuce",ic:"🥬",price:0},{name:"tomato",ic:"🍅",price:0},
+          {name:"cheese",ic:"🧀",price:0},{name:"sour cream",ic:"🥛",price:.5},
+          {name:"salsa",ic:"🥫",price:0},{name:"guacamole",ic:"🥑",price:1},
+          {name:"hot sauce",ic:"🌶️",price:0}]},
+
+ {id:"fries",cat:"sides",name:"Fries",ic:"art:fries-reg",price:2.69,sizes:"food",sauces:true,
+  choices:[{name:"Which fries?",opts:[{label:"Regular",ic:"art:fries-reg",d:0},
+            {label:"Waffle",ic:"art:fries",d:0},{label:"Sweet potato",ic:"art:fries-sweet",d:.5}]}],
+  parts:[{name:"salt",ic:"🧂"}],extras:[{name:"cheese sauce",ic:"🧀",price:.8},{name:"extra crispy",ic:"🔥",price:0}]},
+ {id:"mac",cat:"sides",also:["entrees"],name:"Mac & Cheese",ic:"art:mac",price:3.49,sizes:"food"},
+ {id:"fruit",cat:"sides",name:"Fruit Cup",ic:"🍓",price:3.49,
+  parts:[{name:"apples",ic:"🍎"},{name:"oranges",ic:"🍊"},{name:"grapes",ic:"🍇"},
+         {name:"blueberries",ic:"🫐"},{name:"strawberries",ic:"🍓"}]},
+ {id:"apples",cat:"sides",name:"Apple Slices",ic:"🍎",price:2.00},
+ {id:"oranges",cat:"sides",name:"Orange Slices",ic:"🍊",price:2.00},
+ {id:"strawb",cat:"sides",name:"Strawberries",ic:"🍓",price:2.00},
+ {id:"sside",cat:"sides",name:"Side Salad",ic:"🥬",price:3.99,parts:[{name:"cheese",ic:"🧀"},{name:"tomatoes",ic:"🍅"}]},
+ {id:"chips",cat:"sides",name:"Chips",ic:"\ud83e\udd54",price:1.79,
+  choices:[{name:"Which flavor?",opts:[{label:"Plain",ic:"\ud83e\udd54",d:0},{label:"BBQ",ic:"\ud83c\udf56",d:0},
+            {label:"Jalapeno",ic:"\ud83c\udf36\ufe0f",d:0}]}]},
+ {id:"melon",cat:"sides",name:"Watermelon Slice",ic:"\ud83c\udf49",price:2.50},
+ {id:"grapes",cat:"sides",name:"Grapes",ic:"\ud83c\udf47",price:2.00},
+ {id:"blue",cat:"sides",name:"Blueberries",ic:"\ud83e\uded0",price:2.00},
+
+ {id:"lem",cat:"drinks",name:"Lemonade",ic:"art:lemonade",price:2.49,sizes:"cup",
+  choices:[{name:"Which flavor?",opts:[{label:"Regular",ic:"🍋",d:0},{label:"Strawberry",ic:"🍓",d:.3},{label:"Peach",ic:"🍑",d:.3},
+            {label:"Apple",ic:"🍎",d:.3},{label:"Blue raspberry",ic:"🫐",d:.3},{label:"Mango",ic:"🥭",d:.3},
+            {label:"Pineapple",ic:"🍍",d:.3},{label:"Watermelon",ic:"🍉",d:.3},{label:"Frosted",ic:"🍦",d:1.6}]},
+           {name:"Ice?",opts:[{label:"Normal ice",ic:"🧊",d:0},{label:"Light ice",ic:"❄️",d:0},{label:"No ice",ic:"🚫",d:0}]}]},
+ {id:"tea",cat:"drinks",name:"Sweet Tea",ic:"art:tea",price:2.19,sizes:"cup",
+  choices:[{name:"Which kind?",opts:[{label:"Sweet",ic:"🍬",d:0},{label:"Unsweet",ic:"🍵",d:0},{label:"Half and half",ic:"🌗",d:0},{label:"Peach tea",ic:"🍑",d:.3}]}]},
+ {id:"soda",cat:"drinks",name:"Soda",ic:"art:soda",price:2.19,sizes:"cup",
+  choices:[{name:"Which flavor?",opts:[{label:"Cola",ic:"🟤",d:0},{label:"Diet cola",ic:"⚫",d:0},{label:"Orange",ic:"🟠",d:0},
+            {label:"Root beer",ic:"🍺",d:0},{label:"Lemon-lime",ic:"🟢",d:0},{label:"Grape",ic:"🍇",d:0},{label:"Cherry",ic:"🍒",d:0}]},
+           {name:"Ice?",opts:[{label:"Normal ice",ic:"🧊",d:0},{label:"No ice",ic:"🚫",d:0}]}]},
+ {id:"milk",cat:"drinks",name:"Milk",ic:"🥛",price:1.59,
+  choices:[{name:"Which kind?",opts:[{label:"White",ic:"🥛",d:0},{label:"Chocolate",ic:"🍫",d:0},{label:"Strawberry",ic:"🍓",d:0}]}]},
+ {id:"juice",cat:"drinks",name:"Apple Juice",ic:"🧃",price:1.59},
+ {id:"water",cat:"drinks",name:"Water",ic:"💧",price:0,sizes:"cup"},
+ {id:"coffee",cat:"drinks",name:"Coffee",ic:"☕",price:1.99,sizes:"cup",
+  choices:[{name:"Which flavor?",opts:[{label:"Regular",ic:"☕",d:0},{label:"Vanilla",ic:"🍦",d:.4}]}],
+  parts:[{name:"cream",ic:"🥛"},{name:"sugar",ic:"🍬"}]},
+
+ {id:"cone",cat:"treats",name:"Ice Cream",ic:"🍦",price:1.99,
+  choices:[{name:"Which flavor?",opts:[{label:"Vanilla",ic:"🍨",d:0},{label:"Chocolate",ic:"🍫",d:0},{label:"Strawberry",ic:"🍓",d:0},
+            {label:"Cookies and cream",ic:"🍪",d:.3},{label:"Mint chip",ic:"🌿",d:.3},{label:"Peach",ic:"🍑",d:.3},{label:"Birthday cake",ic:"🎂",d:.3}]},
+           {name:"Cone or cup?",opts:[{label:"Cone",ic:"🍦",d:0},{label:"Cup",ic:"🥣",d:0},{label:"Waffle cone",ic:"🧇",d:.6}]}],
+  parts:[{name:"sprinkles",ic:"🎉"}]},
+ {id:"shake",cat:"treats",name:"Milkshake",ic:"art:shake",price:4.49,
+  parts:[{name:"whipped cream",ic:"☁️"},{name:"cherry",ic:"🍒"}],
+  choices:[{name:"Which flavor?",opts:[{label:"Chocolate",ic:"🍫",d:0},{label:"Vanilla",ic:"🍨",d:0},{label:"Strawberry",ic:"🍓",d:0},
+            {label:"Cookies",ic:"🍪",d:.3},{label:"Peach",ic:"🍑",d:.3},{label:"Banana",ic:"🍌",d:.3}]}]},
+ {id:"brownie",cat:"treats",name:"Brownie",ic:"🍫",price:2.79},
+ {id:"cookie",cat:"treats",name:"Cookie",ic:"🍪",price:1.49,
+  choices:[{name:"Which kind?",opts:[{label:"Chocolate chunk",ic:"🍫",d:0},{label:"Sugar",ic:"🍬",d:0},{label:"Oatmeal raisin",ic:"🍇",d:0},
+            {label:"Peanut butter",ic:"🥜",d:0},{label:"Snickerdoodle",ic:"🌀",d:0},{label:"Birthday sprinkle",ic:"🎉",d:.3}]},
+           {name:"Warm it up?",opts:[{label:"Warm",ic:"🔥",d:0},{label:"Room temp",ic:"🍪",d:0}]}]},
+ {id:"pie",cat:"treats",name:"Apple Pie",ic:"🥧",price:2.29},
+
+ {id:"ketchup",cat:"sauces",name:"Ketchup",ic:"art:sauce-ketchup",price:0,dip:true},
+ {id:"ranch",cat:"sauces",name:"Ranch",ic:"art:sauce-ranch",price:0,dip:true},
+ {id:"bleu",cat:"sauces",name:"Bleu Cheese",ic:"art:sauce-bleu",price:0,dip:true},
+ {id:"bbq",cat:"sauces",name:"BBQ",ic:"art:sauce-bbq",price:0,dip:true},
+ {id:"honey",cat:"sauces",name:"Honey Mustard",ic:"art:sauce-honey",price:0,dip:true},
+ {id:"buff",cat:"sauces",name:"Buffalo",ic:"art:sauce-buffalo",price:0,dip:true},
+ {id:"poly",cat:"sauces",name:"Polynesian",ic:"art:sauce-poly",price:0,dip:true},
+ {id:"napkin",cat:"sauces",name:"Napkins",ic:"🧻",price:0},
+ {id:"straw",cat:"sauces",name:"Straw",ic:"🥢",price:0},
+
+ {id:"knugs",cat:"kids",name:"Kids Nuggets",ic:"art:kids-nuggets",price:4.79,kidsmeal:true,
+  choices:[{name:"How many?",opts:[{label:"4 pieces",ic:"4️⃣",d:0},{label:"6 pieces",ic:"6️⃣",d:.9}]}]},
+ {id:"kstrip",cat:"kids",name:"Kids Strips",ic:"art:kids-strips",price:4.99,kidsmeal:true,
+  choices:[{name:"How many?",opts:[{label:"2 strips",ic:"2️⃣",d:0},{label:"3 strips",ic:"3️⃣",d:1.20}]}]},
+ {id:"kmac",cat:"kids",name:"Kids Mac",ic:"🧸🧀",price:4.29,kidsmeal:true},
+ {id:"kburger",cat:"kids",name:"Kids Burger",ic:"🧸🍔",price:4.99,kidsmeal:true,
+  choices:[BREAD_Q],
+  parts:[{name:"cheese",ic:"🧀"},{name:"ketchup",ic:"🍅"},{name:"pickles",ic:"🥒"}]},
+ {id:"balloon",cat:"kids",name:"Balloon",ic:"🎈",price:0}
+];
+
+var EMOJIS=("🍔 🍟 🌭 🍕 🥪 🌮 🌯 🥙 🧆 🥗 🍝 🍜 🍲 🍛 🍣 🍤 🍗 🍖 🥩 🥓 🍢 🥚 🍳 🧀 🥞 🧇 🍞 🥐 🥨 🥯 🍿 🥜 "+
+ "🥔 🥕 🌽 🥦 🥬 🧅 🍄 🍅 🥑 🥃 🌴 🥭 🫒 🌶️ 🥒 🍇 🍓 🫐 🥭 🍌 🍎 🍉 🍊 🍍 🥝 🍒 🍑 🥥 🌿 🍦 🍧 🍨 🍩 🍪 🎂 🧁 🥧 🍫 🍬 🍭 "+
+ "🫓 🍕 🫑 🥫 🫒 🍮 🥤 🧃 🧋 ☕ 🍵 🥛 💧 🧊 🍯 🧂 🧈 🥣 🥢 🍽️ 🧻 🧸 🎈 🪀 ⭐ 🔥 🥵 ☁️ 🌀 🦖 🐔 🐓 🐮 🐷 🚀 👑 🎉 🚫 🟤 ⚫ 🟠 🟢 🌗").split(" ");
+
+var PART_PRESETS=[{name:"lettuce",ic:"🥬"},{name:"tomato",ic:"🍅"},{name:"onion",ic:"🧅"},{name:"pickles",ic:"🥒"},
+ {name:"cheese",ic:"🧀"},{name:"beef bacon",ic:"🥓"},{name:"ketchup",ic:"🍅"},{name:"mustard",ic:"🌭"},{name:"mayo",ic:"🥣"},
+ {name:"sauce",ic:"🥣"},{name:"bun",ic:"🍞"},{name:"salt",ic:"🧂"},{name:"ice",ic:"🧊"},{name:"whipped cream",ic:"☁️"},
+ {name:"cherry",ic:"🍒"},{name:"sprinkles",ic:"🎉"},{name:"egg",ic:"🍳"},{name:"avocado",ic:"🥑"},
+ {name:"green peppers",ic:"🫑"},{name:"mushrooms",ic:"🍄"},
+ {name:"black olives",ic:"🫒"},{name:"pineapple",ic:"🍍"},
+ {name:"beef pepperoni",ic:"🍕"},{name:"mozzarella",ic:"🧀"},
+ {name:"sour cream",ic:"🥛"},{name:"salsa",ic:"🥫"},
+ {name:"guacamole",ic:"🥑"},{name:"hot sauce",ic:"🌶️"}];
+
+var FLAVOR_PRESETS=[{label:"Strawberry",ic:"🍓"},{label:"Peach",ic:"🍑"},{label:"Apple",ic:"🍎"},{label:"Blue raspberry",ic:"🫐"},
+ {label:"Mango",ic:"🥭"},{label:"Pineapple",ic:"🍍"},{label:"Watermelon",ic:"🍉"},{label:"Cherry",ic:"🍒"},{label:"Grape",ic:"🍇"},
+ {label:"Banana",ic:"🍌"},{label:"Orange",ic:"🍊"},{label:"Lemon",ic:"🍋"},{label:"Chocolate",ic:"🍫"},{label:"Vanilla",ic:"🍨"},
+ {label:"Cookies and cream",ic:"🍪"},{label:"Mint chip",ic:"🌿"},{label:"Birthday cake",ic:"🎂"},{label:"Peanut butter",ic:"🥜"}];
+
+/* ================= state ================= */
+var TAX=0.06;
+/* What a thing costs depends on which section you order it from - M. Tembo - 9/6/26 */
+var SECTION_PRICE=store.get("ou_pricing",{entrees:1,sides:.75,kids:.5,drinks:1,treats:1,sauces:1});
+function priceIn(m,cat){
+  if(!m.price) return 0;
+  if(cat===m.cat) return m.price;
+  var home=SECTION_PRICE[m.cat]||1, here=SECTION_PRICE[cat]||1;
+  return Math.round(m.price*(here/home)*4)/4;      /* nearest quarter, easier to count out */
+}
+function sectionName(id){ var n=id; CATS.forEach(function(c){ if(c.id===id) n=c.name; }); return n; }
+function tileItem(m,cat){
+  if(cat===m.cat) return m;
+  var v=clone(m);
+  v.price=priceIn(m,cat);
+  if(cat==="kids"&&v.name.indexOf("Kids ")!==0) v.name="Kids "+v.name;
+  v.viewCat=cat;
+  return v;
+}
+var state={cat:"entrees",order:[],mode:null,
+ orderNum:sess.get("ou_num",1), stars:sess.get("ou_stars",0),
+ history:sess.get("ou_hist",[]),
+ talk:store.get("ou_talk",true), customer:false, editing:false,
+ custom:store.get("ou_custom",[]), over:store.get("ou_over",{}), hidden:store.get("ou_hidden",{})};
+state.custom.forEach(function(c){ if(c.cat==="chicken") c.cat="entrees"; });
+
+var BAKED=null;/*BAKE*/
+var MENU_REV=5;                       /* full reset requested - M. Tembo - 9/6/26 */
+if(store.get("ou_rev",0)<MENU_REV){
+  state.custom=[]; state.over={}; state.hidden={};
+  store.set("ou_rev",MENU_REV);
+  store.set("ou_custom",[]); store.set("ou_over",{}); store.set("ou_hidden",{});
+}
+if(BAKED && store.get("ou_stamp",0)!==BAKED.stamp){   /* file exported with edits inside - M. Tembo - 9/6/26 */
+  state.custom=BAKED.custom||[]; state.over=BAKED.over||{}; state.hidden=BAKED.hidden||{};
+  if(BAKED.pricing) SECTION_PRICE=BAKED.pricing;
+  store.set("ou_stamp",BAKED.stamp); store.set("ou_custom",state.custom);
+  store.set("ou_over",state.over); store.set("ou_hidden",state.hidden);
+  store.set("ou_pricing",SECTION_PRICE);
+}
+function saveMenu(){ store.set("ou_custom",state.custom); store.set("ou_over",state.over); store.set("ou_hidden",state.hidden); }
+function saveSession(){ sess.set("ou_num",state.orderNum); sess.set("ou_stars",state.stars); sess.set("ou_hist",state.history); }
+
+function getMenu(){
+  var out=[];
+  MENU.forEach(function(m){
+    if(state.hidden[m.id]) return;
+    var o=state.over[m.id];
+    if(o){ var g=clone(m); for(var k in o) g[k]=o[k]; out.push(g); } else out.push(clone(m));
+  });
+  state.custom.forEach(function(c){ out.push(clone(c)); });
+  return out;
+}
+function findItem(id){ var hit=null; getMenu().forEach(function(m){ if(m.id===id) hit=m; }); return hit; }
+
+/* ================= sound ================= */
+var actx=null;
+function beep(f,d,t){ try{
+  if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)();
+  var o=actx.createOscillator(),g=actx.createGain();
+  o.type=t||"square"; o.frequency.value=f;
+  g.gain.setValueAtTime(.06,actx.currentTime);
+  g.gain.exponentialRampToValueAtTime(.001,actx.currentTime+d);
+  o.connect(g); g.connect(actx.destination); o.start(); o.stop(actx.currentTime+d);
+}catch(e){} }
+function say(t){ if(!state.talk) return;
+  try{ window.speechSynthesis.cancel(); var u=new SpeechSynthesisUtterance(t); u.rate=.9; u.pitch=1.15;
+  window.speechSynthesis.speak(u); }catch(e){} }
+
+/* ================= modifier groups ================= */
+function sizeOpts(kind){
+  var cup=kind==="cup";
+  return [{label:"Small",ic:cup?"\ud83e\udd5b":"\ud83e\udd44",d:-.4},
+          {label:"Medium",ic:cup?"\ud83e\udd64":"\ud83c\udf7d\ufe0f",d:0},
+          {label:"Large",ic:cup?"\ud83e\uddcb":"\ud83c\udf72",d:.7}];
+}
+var MEAL_OPTS=[{label:"Just this",ic:"\ud83c\udf7d\ufe0f",d:0},
+  {label:"Meal",ic:"art:fries",d:2.99,isMeal:true},{label:"Large meal",ic:"\ud83c\udf89",d:3.79,isMeal:true}];
+var FRUIT_SIDES=[{label:"Fruit cup",ic:"\ud83c\udf53",d:0,id:"fruit"},{label:"Apple slices",ic:"\ud83c\udf4e",d:0,id:"apples"},
+  {label:"Orange slices",ic:"\ud83c\udf4a",d:0,id:"oranges"},{label:"Grapes",ic:"\ud83c\udf47",d:0,id:"grapes"},
+  {label:"Blueberries",ic:"\ud83e\uded0",d:0,id:"blue"},{label:"Strawberries",ic:"\ud83c\udf53",d:0,id:"strawb"}];
+var MEAL_SIDES=[{label:"Fries",ic:"art:fries-reg",d:0,id:"fries"}].concat(FRUIT_SIDES,
+  [{label:"Mac and cheese",ic:"art:mac",d:.5,id:"mac"},
+   {label:"Side salad",ic:"\ud83e\udd6c",d:.5,id:"sside"},{label:"Soup",ic:"\ud83c\udf72",d:.5,id:"soup"}]);
+var MEAL_DRINKS=[{label:"Lemonade",ic:"art:lemonade",d:0,id:"lem"},{label:"Sweet tea",ic:"art:tea",d:0,id:"tea"},
+  {label:"Soda",ic:"art:soda",d:0,id:"soda"},{label:"Water",ic:"\ud83d\udca7",d:0,id:"water"},
+  {label:"Milk",ic:"\ud83e\udd5b",d:0,id:"milk"},{label:"Coffee",ic:"\u2615",d:0,id:"coffee"}];
+var KID_SIDES=[{label:"Fries",ic:"art:fries-reg",d:0,id:"fries"}].concat(FRUIT_SIDES,
+  [{label:"Mac and cheese",ic:"art:mac",d:.3,id:"mac"}]);
+var KID_DRINKS=[{label:"Milk",ic:"\ud83e\udd5b",d:0,id:"milk"},{label:"Apple juice",ic:"\ud83e\uddc3",d:0,id:"juice"},
+  {label:"Lemonade",ic:"art:lemonade",d:.3,id:"lem"}];
+function dipOpts(){                                  /* sauces come from the menu itself - M. Tembo - 9/6/26 */
+  var o=[]; getMenu().forEach(function(m){ if(m.dip) o.push({label:m.name,ic:m.ic,d:m.price||0}); });
+  return o;
+}
+function optAt(g,picks){ var a=picks[g.key]; return (a&&a.length)?g.opts[a[0]]:null; }
+
+/* Groups carry a stable key so picks survive the menu rebuilding itself. */
+function buildMods(item,picks){
+  picks=picks||{};
+  var g=[], mealChosen=false;
+  function add(key,name,type,opts,short){
+    if(!opts||!opts.length) return null;
+    var o={key:key,name:name,type:type,opts:opts}; if(short) o.short=short; g.push(o); return o;
+  }
+  if(item.sizes) add("size","Pick a size","one",sizeOpts(item.sizes));
+  var qseen={};                                    /* a question can wait on an earlier answer - M. Tembo - 9/6/26 */
+  (item.choices||[]).forEach(function(c,i){
+    if(c.needs){
+      var pg=qseen["q"+c.needs.q], sel=pg?optAt(pg,picks):null;
+      if(!sel||sel.label!==c.needs.label) return;
+    }
+    qseen["q"+i]=add("q"+i,c.name,"one",c.opts);
+  });
+
+  var kidsOn=false;                       /* any entree can be a kids meal - M. Tembo - 9/6/26 */
+  if(item.kidsmeal||item.kidsok){
+    var kidOpts=item.kidsmeal
+      ? [{label:"Kids meal",ic:"\ud83e\uddf8",d:0},{label:"Just the food",ic:"\ud83c\udf7d\ufe0f",d:-1.5}]
+      : [{label:"Just the food",ic:"\ud83c\udf7d\ufe0f",d:0},{label:"Kids meal",ic:"\ud83e\uddf8",d:2}];
+    var ksel=optAt({key:"kidmeal",opts:kidOpts},picks);
+    if(!ksel){ var kd=-1; kidOpts.forEach(function(o,i){ if(kd===-1&&o.d===0) kd=i; }); ksel=kidOpts[kd===-1?0:kd]; }
+    kidsOn=!!(ksel&&ksel.label==="Kids meal");
+    add("kidmeal","Kids meal, or just the food?","one",kidOpts);
+  }
+  if(item.meal && !kidsOn){
+    var mg=add("meal","Make it a meal?","one",MEAL_OPTS);
+    var chose=optAt(mg,picks);
+    if(chose && chose.isMeal){
+      mealChosen=true;
+      var sg=add("mealside","Meal side","one",MEAL_SIDES,"Side");
+      var ssel=optAt(sg,picks)||MEAL_SIDES[0];
+      var sideItem=(ssel&&ssel.id)?findItem(ssel.id):null;
+      if(sideItem)(sideItem.choices||[]).forEach(function(c,i){
+        add("ms-"+sideItem.id+"-"+i,"Side: "+c.name,"one",c.opts,"Side"); });
+      var dg=add("mealdrink","Meal drink","one",MEAL_DRINKS,"Drink");
+      var dsel=optAt(dg,picks) || MEAL_DRINKS[0];
+      var drink=dsel&&dsel.id?findItem(dsel.id):null;
+      if(drink){                                     /* the drink's own flavors - M. Tembo - 9/6/26 */
+        (drink.choices||[]).forEach(function(c,i){
+          add("md-"+drink.id+"-"+i,"Drink: "+c.name,"one",c.opts,"Drink");
+        });
+      }
+    }
+  }
+  if(kidsOn){
+    var ksg=add("kidside","Pick a side","one",KID_SIDES,"Side");
+    var kssel=optAt(ksg,picks)||KID_SIDES[0];
+    var kSide=(kssel&&kssel.id)?findItem(kssel.id):null;
+    if(kSide)(kSide.choices||[]).forEach(function(c,i){
+      add("ks-"+kSide.id+"-"+i,"Side: "+c.name,"one",c.opts,"Side"); });
+    var kg=add("kiddrink","Pick a drink","one",KID_DRINKS,"Drink");
+    var ksel=optAt(kg,picks)||KID_DRINKS[0];
+    var kdrink=ksel&&ksel.id?findItem(ksel.id):null;
+    if(kdrink) (kdrink.choices||[]).forEach(function(c,i){
+      add("kd-"+kdrink.id+"-"+i,"Drink: "+c.name,"one",c.opts,"Drink");
+    });
+    add("toy","Toy?","one",[{label:"Yes, a toy!",ic:"\ud83e\ude80",d:0},{label:"No toy",ic:"\ud83d\udeab",d:0}],"Toy");
+  }
+  if(item.sauces || kidsOn || mealChosen)   /* one sauce list, meal or not - M. Tembo - 9/6/26 */
+    add("sauce","Dipping sauce","many",dipOpts(),"Sauce");
+
+  if(item.parts&&item.parts.length)
+    add("off","Take something off?","many",item.parts.map(function(p){
+      return {label:"No "+p.name,ic:p.ic,d:0,slash:true}; }));
+  var addl=[], plain=!(item.parts&&item.parts.length);
+  (item.parts||[]).forEach(function(p){ addl.push({label:"Extra "+p.name,ic:p.ic,d:0}); });
+  (item.extras||[]).forEach(function(x){                /* build-your-own reads better without "Add" */
+    addl.push({label:plain?cap(x.name):"Add "+x.name,ic:x.ic,d:x.price||0}); });
+  add("add",(item.parts&&item.parts.length)?"Add something?":"What goes on it?","many",addl);
+  return g;
+}
+
+/* Rebuild until no new group appears, filling in defaults as we go. */
+function syncMods(item,picks){
+  var mods=[],added=true,rounds=0;
+  while(added && rounds<6){
+    added=false; rounds++;
+    mods=buildMods(item,picks);
+    mods.forEach(function(gr){
+      if(picks.hasOwnProperty(gr.key)) return;
+      added=true;
+      if(gr.type==="one"){
+        var def=-1;
+        gr.opts.forEach(function(o,i){ if(def===-1&&o.d===0) def=i; });
+        picks[gr.key]=[def===-1?0:def];
+      } else picks[gr.key]=[];
+    });
+  }
+  return mods;
+}
+function chosenFrom(mods,picks){
+  var out=[];
+  mods.forEach(function(gr){
+    (picks[gr.key]||[]).forEach(function(i){
+      var o=gr.opts[i]; if(!o||o.label==="Just this") return;
+      out.push({label:o.label,ic:o.ic,d:o.d,slash:!!o.slash,grp:gr.name,pre:gr.short||""});
+    });
+  });
+  return out;
+}
+var SHOWGRP={"Meal side":"Side","Meal drink":"Drink","Pick a side":"Side","Pick a drink":"Drink","Toy?":"Toy"};
+function modKey(x){ return (x.grp||"")+"~"+x.label; }
+function sigOf(id,mods){ return id+"|"+mods.map(modKey).sort().join(","); }
+function modLabel(x){
+  var pre=x.pre||SHOWGRP[x.grp]||"";
+  return (pre?pre+": ":"")+(x.slash?"\ud83d\udeab":mini(x.ic))+" "+x.label;
+}
+
+/* ================= rail + grid ================= */
+function renderRail(){
+  var r=$("rail"); r.innerHTML="";
+  CATS.forEach(function(c){
+    var b=document.createElement("button");
+    b.className="cat"+(state.cat===c.id?" on":"");
+    b.innerHTML='<span class="ic">'+c.ic+'</span><span>'+c.name+'</span>';
+    b.onclick=function(){ state.cat=c.id; beep(660,.06); renderRail(); renderGrid(); };
+    r.appendChild(b);
+  });
+}
+function renderGrid(){
+  var g=$("grid"); g.innerHTML="";
+  if(!state.mode && !state.editing){         /* pick the method before any food - M. Tembo - 9/6/26 */
+    var msg=document.createElement("div"); msg.className="startmsg";
+    msg.innerHTML="\ud83d\udc4b First, ask the customer:<b>Is this for here, to go, or drive-thru?</b>";
+    g.appendChild(msg);
+    MODES.forEach(function(m){
+      var t=document.createElement("button"); t.className="tile mode";
+      t.innerHTML='<span class="ic">'+m.ic+'</span><span class="nm">'+m.label+'</span>';
+      t.onclick=function(){ state.mode=m.id; beep(950,.07); say(m.label); renderTicket(); renderGrid(); };
+      g.appendChild(t);
+    });
+    return;
+  }
+  getMenu().filter(function(m){
+    return m.cat===state.cat || (m.also||[]).indexOf(state.cat)!==-1;
+  }).forEach(function(base){
+    var m=tileItem(base,state.cat);
+    /* a kids tile shows the meal price, since that is what opens - M. Tembo - 9/6/26 */
+    var shown=m.price+((state.cat==="kids"&&m.kidsok&&m.price)?2:0);
+    var t=document.createElement("button");
+    t.className="tile"+(m.price===0?" free":"");
+    var tag=m.meal?"\ud83c\udf5f":(m.kidsmeal?"\ud83e\uddf8":"");
+    t.innerHTML=(tag?'<span class="tag">'+tag+'</span>':'')+icHTML(m.ic)+
+      '<span class="nm">'+m.name+'</span><span class="pr">'+(shown===0?"FREE":money(shown))+'</span>'+
+      '<span class="pencil">\u270f\ufe0f</span>';
+    t.onclick=function(){ state.editing?openEditor(base.id):tapItem(m); };
+    g.appendChild(t);
+  });
+  var add=document.createElement("button"); add.className="tile add";
+  add.innerHTML='<span class="ic">\u2795</span><span class="nm">Make a new food</span><span class="pr">&nbsp;</span>';
+  add.onclick=function(){ openEditor(null); };
+  g.appendChild(add);
+}
+
+/* ================= service mode ================= */
+var afterMode=null;
+function openMode(cb){
+  afterMode=cb||null;
+  var b=$("modeBody"); b.innerHTML="";
+  var box=document.createElement("div"); box.className="opts";
+  MODES.forEach(function(m){
+    var btn=document.createElement("button");
+    btn.className="opt big"+(state.mode===m.id?" on":"");
+    btn.innerHTML='<span class="ic">'+m.ic+'</span><span>'+m.label+'</span>';
+    btn.onclick=function(){
+      state.mode=m.id; beep(950,.07); say(m.label);
+      $("modeScrim").classList.remove("on");
+      renderTicket(); renderGrid();
+      var f=afterMode; afterMode=null; if(f) f();
+    };
+    box.appendChild(btn);
+  });
+  b.appendChild(box);
+  $("modeScrim").classList.add("on");
+}
+$("modeX").onclick=function(){ $("modeScrim").classList.remove("on"); afterMode=null; };
+$("modeChip").onclick=function(){ openMode(null); };
+
+/* ================= ordering ================= */
+var pending=null;
+function tapItem(m){
+  if(!state.mode){ openMode(function(){ tapItem(m); }); return; }
+  say(m.name); beep(880,.07);
+  var picks={}, mods=syncMods(m,picks);
+  if(m.viewCat==="kids"){                 /* tapped from the Kids section - M. Tembo - 9/6/26 */
+    mods.forEach(function(gr){ if(gr.key==="kidmeal")
+      gr.opts.forEach(function(o,i){ if(o.label==="Kids meal") picks.kidmeal=[i]; }); });
+    mods=syncMods(m,picks);
+  }
+  if(!mods.length){ addLine(m,[],picks); return; }
+  pending={item:m,mods:mods,picks:picks};
+  renderOpts(); $("optScrim").classList.add("on");
+}
+function pendingPrice(){
+  var p=pending.item.price;
+  pending.mods.forEach(function(gr){
+    (pending.picks[gr.key]||[]).forEach(function(i){ if(gr.opts[i]) p+=gr.opts[i].d; });
+  });
+  return Math.max(0,p);
+}
+function renderOpts(){
+  var m=pending.item, editing=(pending.editIndex!=null);
+  $("optIc").innerHTML=icoInner(m.ic); $("optName").textContent=m.name;
+  $("optPrice").textContent=money(pendingPrice())+(editing?"  \u00b7  changing this one":"");
+  var f=$("optFoot"); f.innerHTML="";
+  if(editing){
+    var rm=document.createElement("button"); rm.className="bigbtn danger"; rm.style.flex="0 0 62px";
+    rm.textContent="\ud83d\uddd1";
+    rm.onclick=function(){
+      state.order.splice(pending.editIndex,1);
+      $("optScrim").classList.remove("on"); pending=null;
+      beep(260,.16); renderTicket();
+    };
+    f.appendChild(rm);
+  }
+  var ok=document.createElement("button"); ok.className="bigbtn pay";
+  ok.textContent=editing?"\u2705 Save the change":"\u2795 Add to order";
+  ok.onclick=commitPending; f.appendChild(ok);
+  var body=$("optBody"); body.innerHTML="";
+  pending.mods.forEach(function(gr){
+    var wrap=document.createElement("div"); wrap.className="grp";
+    var h=document.createElement("h4"); h.textContent=gr.name; wrap.appendChild(h);
+    var box=document.createElement("div"); box.className="opts";
+    gr.opts.forEach(function(o,oi){
+      var on=(pending.picks[gr.key]||[]).indexOf(oi)!==-1;
+      var b=document.createElement("button"); b.className="opt"+(on?" on":"");
+      b.innerHTML='<span class="ic'+(isArt(o.ic)?" art":"")+(o.slash?" slash":"")+'">'+icoInner(o.ic)+
+        '</span><span>'+o.label+'</span>'+(o.d?'<span class="d">'+(o.d>0?"+"+money(o.d):"-"+money(-o.d))+'</span>':'');
+      b.onclick=function(){
+        if(gr.type==="one") pending.picks[gr.key]=[oi];
+        else{ var a=pending.picks[gr.key],k=a.indexOf(oi); if(k===-1) a.push(oi); else a.splice(k,1); }
+        beep(on?440:990,.05); say(o.label);
+        pending.mods=syncMods(pending.item,pending.picks);
+        renderOpts();
+      };
+      box.appendChild(b);
+    });
+    wrap.appendChild(box); body.appendChild(wrap);
+  });
+}
+function commitPending(){
+  var mods=chosenFrom(pending.mods,pending.picks);
+  if(pending.editIndex!=null){
+    var l=state.order[pending.editIndex];
+    var price=pending.item.price; mods.forEach(function(x){ price+=x.d; });
+    l.mods=mods; l.price=Math.max(0,price);
+    l.sig=sigOf(pending.item.id,mods); l.picks=clone(pending.picks);
+    for(var k=0;k<state.order.length;k++){        /* fold into a matching line if it now matches one */
+      if(k!==pending.editIndex && state.order[k].sig===l.sig){
+        state.order[k].qty+=l.qty; state.order.splice(pending.editIndex,1); break;
+      }
+    }
+    beep(1180,.1); say("Changed");
+  } else addLine(pending.item,mods,pending.picks);
+  $("optScrim").classList.remove("on"); pending=null; renderTicket();
+}
+$("optX").onclick=function(){ $("optScrim").classList.remove("on"); pending=null; };
+
+function addLine(m,mods,picks){
+  var sig=sigOf(m.id,mods), found=null;
+  state.order.forEach(function(l){ if(l.sig===sig) found=l; });
+  if(found) found.qty++;
+  else{
+    var price=m.price; mods.forEach(function(x){ price+=x.d; });
+    state.order.push({sig:sig,itemId:m.id,item:clone(m),picks:clone(picks||{}),
+      ic:m.ic,name:m.name,mods:mods,price:Math.max(0,price),qty:1});
+  }
+  beep(1320,.09); renderTicket();
+}
+/* reopen a line instead of making him start the item over - M. Tembo - 9/6/26 */
+function editLine(i){
+  var l=state.order[i];
+  if(!l||!l.item){ beep(300,.14,"sawtooth"); return; }
+  var picks=clone(l.picks||{});
+  pending={item:l.item,mods:syncMods(l.item,picks),picks:picks,editIndex:i};
+  say("Changing the "+l.name);
+  renderOpts(); $("optScrim").classList.add("on");
+}
+function modText(mods){ return mods.map(modLabel).join(" · "); }
+
+function renderTicket(){
+  var box=$("lines"); box.innerHTML="";
+  if(!state.order.length)
+    box.innerHTML='<div class="empty"><span class="big">🧾</span>No food yet.<br>Tap a picture to start the order!</div>';
+  state.order.forEach(function(l,i){
+    var row=document.createElement("div"); row.className="line";
+    var mt=modText(l.mods);
+    var top=document.createElement("button"); top.className="lineTop";
+    top.innerHTML='<div class="lic">'+icoInner(l.ic)+'</div><div><div class="lname">'+l.name+'</div>'+
+      (mt?'<div class="lmods">'+mt+'</div>':'')+'</div>'+
+      '<div class="lprice">'+money(l.price*l.qty)+'<span class="ledit">\u270f\ufe0f change</span></div>';
+    top.onclick=function(){ editLine(i); };
+    row.appendChild(top);
+    var q=document.createElement("div"); q.className="qty";
+    var mi=document.createElement("button"); mi.className="qbtn"; mi.textContent="−";
+    mi.onclick=function(){ l.qty--; beep(330,.07); if(l.qty<=0) state.order.splice(i,1); renderTicket(); };
+    var nm=document.createElement("span"); nm.className="qnum"; nm.textContent=l.qty;
+    var pl=document.createElement("button"); pl.className="qbtn"; pl.textContent="+";
+    pl.onclick=function(){ l.qty++; beep(1100,.07); renderTicket(); };
+    q.appendChild(mi); q.appendChild(nm); q.appendChild(pl); row.appendChild(q); box.appendChild(row);
+  });
+  var sub=0; state.order.forEach(function(l){ sub+=l.price*l.qty; });
+  var tax=sub*TAX;
+  $("sub").textContent=money(sub); $("tax").textContent=money(tax);
+  $("grand").textContent=money(sub+tax); $("barTotal").textContent=money(sub+tax);
+  var cnt=0; state.order.forEach(function(l){ cnt+=l.qty; });
+  $("barCount").textContent=cnt;
+  $("ordnum").textContent=state.orderNum; $("ordnum2").textContent=state.orderNum;
+  $("starcount").textContent=state.stars;
+  var mi2=state.mode?modeInfo(state.mode):null;
+  $("modeChip").textContent=mi2?(mi2.ic+" "+mi2.label+"  (tap to change)"):"👋 Ask: for here or to go?";
+  $("barMode").textContent=mi2?mi2.ic:"\ud83d\udc4b";
+  document.body.classList.toggle("needmode",!state.mode&&!state.editing);
+}
+function orderTotal(){ var s=0; state.order.forEach(function(l){ s+=l.price*l.qty; }); return Math.round(s*(1+TAX)*100)/100; }
+$("clearBtn").onclick=function(){ if(!state.order.length) return;
+  state.order=[]; beep(200,.2,"sawtooth"); say("Order cleared"); renderTicket(); };
+
+/* ================= pretend customer ================= */
+var want=null;
+function makeWant(){
+  var pool=getMenu().filter(function(m){ return m.price>0; });
+  if(!pool.length) return null;
+  var n=1+Math.floor(Math.random()*3), lines=[];
+  for(var i=0;i<n;i++){
+    var m=pick(pool), picks={}, mods=syncMods(m,picks), done={}, rounds=0, changed=true;
+    while(changed && rounds<6){
+      changed=false; rounds++;
+      mods.forEach(function(gr){
+        if(done[gr.key]) return;
+        done[gr.key]=1; changed=true;
+        if(gr.type==="one") picks[gr.key]=[Math.floor(Math.random()*gr.opts.length)];
+        else if(Math.random()<.35) picks[gr.key]=[Math.floor(Math.random()*gr.opts.length)];
+        else picks[gr.key]=[];
+      });
+      mods=syncMods(m,picks);
+    }
+    var chosen=chosenFrom(mods,picks);
+    lines.push({itemId:m.id,ic:m.ic,name:m.name,mods:chosen,sig:sigOf(m.id,chosen),qty:1});
+  }
+  return {lines:lines,mode:pick(MODES).id,pay:pick(["cash","card","gift"])};
+}
+var PAYINFO={cash:{ic:"💵",label:"cash"},card:{ic:"💳",label:"a card"},gift:{ic:"🎁",label:"a gift card"}};
+
+function renderCustomer(){
+  var box=$("customer");
+  if(!state.customer||!want){ box.innerHTML=""; return; }
+  var h='<h4>🧑 The customer wants: (tap for a new customer)</h4>';
+  want.lines.forEach(function(l,i){                     /* one card per item - M. Tembo - 9/6/26 */
+    h+='<div class="wantline"><b><span class="idx">'+(i+1)+'</span>'+mini(l.ic)+' '+l.name+'</b>';
+    l.mods.forEach(function(m){ h+='<div class="wantopt">'+modLabel(m)+'</div>'; });
+    h+='</div>';
+  });
+  var mi=modeInfo(want.mode), p=PAYINFO[want.pay];
+  h+='<div class="wantfoot"><span>'+mi.ic+' '+mi.label+'</span><span>'+p.ic+' Paying with '+p.label+'</span></div>';
+  box.innerHTML=h;
+}
+function newCustomer(){
+  want=makeWant(); renderCustomer();
+  if(!want) return;
+  var txt="Hi! Can I please have "+want.lines.map(function(l){
+    return l.name+(l.mods.length?" with "+l.mods.map(function(m){
+      return (SHOWGRP[m.grp]?SHOWGRP[m.grp].toLowerCase()+" of ":"")+m.label; }).join(" and "):"");
+  }).join(", and ")+". "+modeInfo(want.mode).label+", and I'm paying with "+PAYINFO[want.pay].label+".";
+  say(txt);
+}
+
+/* check the ticket against what they asked for - M. Tembo - 9/6/26 */
+function checkOrder(){
+  var rows=[], ok=true;
+  var have={}; state.order.forEach(function(l){ have[l.sig]=(have[l.sig]||0)+l.qty; });
+  var haveIds={}; state.order.forEach(function(l){ haveIds[l.itemId]=(haveIds[l.itemId]||0)+l.qty; });
+  var used={}, near={};        /* don't double-report a near match as an extra - M. Tembo - 9/6/26 */
+  want.lines.forEach(function(l){
+    var mt=modText(l.mods);
+    if((have[l.sig]||0)-(used[l.sig]||0) > 0){
+      used[l.sig]=(used[l.sig]||0)+1;
+      rows.push({mark:"✅",cls:"good",text:mini(l.ic)+" "+l.name,sub:mt});
+    }else if(haveIds[l.itemId]){
+      ok=false;
+      var best=null,score=-1;
+      state.order.forEach(function(t){
+        if(t.itemId!==l.itemId) return;
+        var n=0; t.mods.forEach(function(m){ if(l.mods.map(modKey).indexOf(modKey(m))!==-1) n++; });
+        if(n>score){ score=n; best=t; }
+      });
+      if(best) near[best.sig]=(near[best.sig]||0)+1;
+      var hk=best?best.mods.map(modKey):[], wk=l.mods.map(modKey);
+      var miss=l.mods.filter(function(m){ return hk.indexOf(modKey(m))===-1; });
+      var extraM=best?best.mods.filter(function(m){ return wk.indexOf(modKey(m))===-1; }):[];
+      var sub="";
+      if(miss.length) sub+="Needs: "+miss.map(modLabel).join(" · ");
+      if(extraM.length) sub+=(sub?"<br>":"")+"Remove: "+extraM.map(modLabel).join(" · ");
+      rows.push({mark:"⚠️",cls:"bad",text:mini(l.ic)+" "+l.name+" is close, but not quite",sub:sub});
+    }else{
+      ok=false;
+      rows.push({mark:"❌",cls:"bad",text:mini(l.ic)+" "+l.name+" is missing",sub:mt});
+    }
+  });
+  var wantCount={}; want.lines.forEach(function(l){ wantCount[l.sig]=(wantCount[l.sig]||0)+1; });
+  state.order.forEach(function(l){
+    var extra=l.qty-(wantCount[l.sig]||0)-(near[l.sig]||0);
+    if(extra>0){ ok=false;
+      rows.push({mark:"➕",cls:"bad",text:mini(l.ic)+" "+l.name+" ×"+extra+" was not ordered",sub:modText(l.mods)}); }
+  });
+  var wm=modeInfo(want.mode), gm=state.mode?modeInfo(state.mode):{ic:"👋",label:"not picked"};
+  if(state.mode===want.mode) rows.push({mark:"✅",cls:"good",text:wm.ic+" "+wm.label,sub:""});
+  else{ ok=false; rows.push({mark:"❌",cls:"bad",text:"They wanted "+wm.ic+" "+wm.label,sub:"You have "+gm.ic+" "+gm.label}); }
+  return {ok:ok,rows:rows};
+}
+
+function openCheck(){
+  var res=checkOrder();
+  $("chkIc").textContent=res.ok?"🎉":"🔍";
+  $("chkTitle").textContent=res.ok?"It all matches!":"Something is different";
+  $("chkSub").textContent=res.ok?"Go ahead and take the money":"Check the red ones";
+  var b=$("chkBody"); b.innerHTML="";
+  res.rows.forEach(function(r){
+    var d=document.createElement("div"); d.className="checkrow "+r.cls;
+    d.innerHTML='<span class="mark">'+r.mark+'</span><span>'+r.text+(r.sub?'<small>'+r.sub+'</small>':'')+'</span>';
+    b.appendChild(d);
+  });
+  var f=$("chkFoot"); f.innerHTML="";
+  var back=document.createElement("button"); back.className="bigbtn ghost"; back.textContent="↩ Fix the order";
+  back.onclick=function(){ $("checkScrim").classList.remove("on"); };
+  var go=document.createElement("button"); go.className="bigbtn pay"; go.textContent="💳 Take payment";
+  go.onclick=function(){ $("checkScrim").classList.remove("on"); startPay(res.ok); };
+  f.appendChild(back); f.appendChild(go);
+  say(res.ok?"That is exactly right!":"Hmm, something is not quite right.");
+  beep(res.ok?1200:300,.14);
+  $("checkScrim").classList.add("on");
+}
+$("chkX").onclick=function(){ $("checkScrim").classList.remove("on"); };
+
+/* ================= payment ================= */
+var pay={};
+$("payBtn").onclick=function(){
+  if(!state.order.length){ say("Add some food first"); beep(200,.2,"sawtooth"); return; }
+  if(!state.mode){ openMode(null); return; }
+  if(state.customer&&want) openCheck(); else startPay(null);
+};
+function startPay(correctSoFar){
+  pay={method:null,given:0,paid:0,phase:"pick",giftBal:0,correct:correctSoFar};
+  renderPay(); $("payScrim").classList.add("on");
+}
+$("payX").onclick=function(){ $("payScrim").classList.remove("on"); };
+function due(){ return Math.round((orderTotal()-pay.paid)*100)/100; }
+
+function renderPay(){
+  var body=$("payBody"),foot=$("payFoot"); body.innerHTML=""; foot.innerHTML="";
+  if(pay.phase==="pick") return payPick(body,foot);
+  if(pay.phase==="cash") return payCash(body,foot);
+  if(pay.phase==="card") return payCard(body,foot);
+  if(pay.phase==="gift") return payGift(body,foot);
+}
+function payPick(body,foot){
+  $("payIc").textContent="💳"; $("payTitle").textContent="Take payment";
+  $("paySub").textContent="They owe "+money(due());
+  if(state.customer&&want){
+    var hint=document.createElement("div"); hint.className="checkrow";
+    hint.innerHTML='<span class="mark">🧑</span><span>They said they are paying with '+
+      PAYINFO[want.pay].ic+' '+PAYINFO[want.pay].label+'</span>';
+    body.appendChild(hint);
+  }
+  var box=document.createElement("div"); box.className="opts";
+  [{k:"cash",l:"Cash",ic:"💵"},{k:"card",l:"Card",ic:"💳"},{k:"gift",l:"Gift card",ic:"🎁"}].forEach(function(m){
+    var b=document.createElement("button"); b.className="opt big";
+    b.innerHTML='<span class="ic">'+m.ic+'</span><span>'+m.l+'</span>';
+    b.onclick=function(){
+      if(state.customer&&want&&m.k!==want.pay){
+        beep(300,.2,"sawtooth");
+        say("Oh, I wanted to pay with "+PAYINFO[want.pay].label+".");
+        $("paySub").textContent="They wanted "+PAYINFO[want.pay].label+", try again";
+        return;
+      }
+      pay.method=m.k; pay.phase=m.k; pay.given=0; beep(880,.07); say(m.l); renderPay();
+    };
+    box.appendChild(b);
+  });
+  body.appendChild(box);
+  var d=document.createElement("div"); d.className="paydash"; d.style.marginTop="12px";
+  d.innerHTML='<div class="row"><span>Total</span><span>'+money(orderTotal())+'</span></div>'+
+    (pay.paid?'<div class="row"><span>Already paid</span><span>'+money(pay.paid)+'</span></div>'+
+              '<div class="row short"><span>Still due</span><span>'+money(due())+'</span></div>':'');
+  body.appendChild(d);
+}
+var CASH=[{l:"25¢",v:.25,c:1},{l:"50¢",v:.5,c:1},{l:"$1 coin",v:1,c:1},{l:"$1",v:1},{l:"$5",v:5},
+          {l:"$10",v:10},{l:"$20",v:20},{l:"$50",v:50},{l:"Exact",v:-1}];
+function payCash(body,foot){
+  $("payIc").textContent="💵"; $("payTitle").textContent="Cash"; $("paySub").textContent="Tap what they hand you";
+  var d=due(), ch=pay.given-d;
+  var dash=document.createElement("div"); dash.className="paydash";
+  dash.innerHTML='<div class="row"><span>They owe</span><span>'+money(d)+'</span></div>'+
+    '<div class="row"><span>They gave you</span><span>'+money(pay.given)+'</span></div>'+
+    (ch>=0?'<div class="row change"><span>Change back</span><span>'+money(ch)+'</span></div>'
+          :'<div class="row short"><span>Still need</span><span>'+money(-ch)+'</span></div>');
+  body.appendChild(dash);
+  var grid=document.createElement("div"); grid.className="money-grid";
+  CASH.forEach(function(c){
+    var b=document.createElement("button"); b.className="bill"+(c.c?" coin":"");
+    b.textContent=c.v===-1?"🎯 Exact":(c.c?"🪙 ":"💵 ")+c.l;
+    b.onclick=function(){ pay.given=c.v===-1?d:Math.round((pay.given+c.v)*100)/100; beep(760,.06); renderPay(); };
+    grid.appendChild(b);
+  });
+  body.appendChild(grid);
+  foot.appendChild(backBtn());
+  var fin=document.createElement("button"); fin.className="bigbtn pay";
+  fin.textContent=ch>=0?"🎉 Give change & finish":"Not enough yet"; fin.style.opacity=ch>=0?1:.45;
+  fin.onclick=function(){ if(ch<0){ beep(200,.25,"sawtooth"); say("Not enough money yet"); return; } finishOrder("cash",ch); };
+  foot.appendChild(fin);
+}
+function payCard(body,foot){
+  $("payIc").textContent="💳"; $("payTitle").textContent="Card"; $("paySub").textContent=money(due())+" on the reader";
+  var w=document.createElement("div"); w.className="cardbox";
+  w.innerHTML='<div class="creditcard"><div class="chip2"></div><div class="no">•••• •••• •••• 4417</div>'+
+    '<div class="nm">HUNGRY CUSTOMER</div></div><div class="reader" id="readerMsg">Tap the card on the reader</div>';
+  body.appendChild(w);
+  var tap=document.createElement("button"); tap.className="bigbtn pay";
+  tap.style.maxWidth="300px"; tap.style.margin="0 auto"; tap.style.display="block"; tap.textContent="💳 Tap the card";
+  tap.onclick=function(){
+    tap.disabled=true; tap.style.opacity=.5;
+    var msg=$("readerMsg");
+    msg.innerHTML='Reading the card <span class="dots"><span>.</span><span>.</span><span>.</span></span>';
+    beep(700,.08); say("Reading the card");
+    setTimeout(function(){ beep(900,.08); msg.textContent="Talking to the bank..."; },700);
+    setTimeout(function(){ msg.textContent="✅ Approved!"; beep(1200,.12);
+      setTimeout(function(){ beep(1600,.2); },130); finishOrder("card",0); },1700);
+  };
+  body.appendChild(tap); foot.appendChild(backBtn());
+}
+function payGift(body,foot){
+  $("payIc").textContent="🎁"; $("payTitle").textContent="Gift card"; $("paySub").textContent="Swipe it and see what's left";
+  if(!pay.giftBal) pay.giftBal=pick([5,10,15,20,25]);
+  var d=due();
+  var dash=document.createElement("div"); dash.className="paydash";
+  dash.innerHTML='<div class="row"><span>They owe</span><span>'+money(d)+'</span></div>'+
+    '<div class="row"><span>Gift card has</span><span>'+money(pay.giftBal)+'</span></div>'+
+    (pay.giftBal>=d?'<div class="row change"><span>Left on the card</span><span>'+money(pay.giftBal-d)+'</span></div>'
+                   :'<div class="row short"><span>Still need after</span><span>'+money(d-pay.giftBal)+'</span></div>');
+  body.appendChild(dash);
+  foot.appendChild(backBtn());
+  var b=document.createElement("button"); b.className="bigbtn pay"; b.textContent="🎁 Swipe the gift card";
+  b.onclick=function(){
+    beep(880,.1);
+    if(pay.giftBal>=d) finishOrder("gift",0);
+    else{
+      pay.paid=Math.round((pay.paid+pay.giftBal)*100)/100;
+      say("The gift card only had "+money(pay.giftBal).replace("$","")+" dollars. They still owe "+money(due()).replace("$","")+".");
+      pay.giftBal=0; pay.phase="pick"; renderPay();
+    }
+  };
+  foot.appendChild(b);
+}
+function backBtn(){
+  var b=document.createElement("button"); b.className="bigbtn ghost"; b.style.flex="0 0 70px"; b.textContent="↩";
+  b.onclick=function(){ pay.phase="pick"; pay.given=0; beep(400,.08); renderPay(); }; return b;
+}
+
+function finishOrder(method,change){
+  var perfect = pay.correct===true;
+  if(perfect){ state.stars++; }
+  state.history.unshift({num:state.orderNum, time:new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}),
+    mode:state.mode, method:method, total:orderTotal(), change:change, perfect:perfect,
+    items:state.order.map(function(l){ return {ic:l.ic,name:l.name,mods:modText(l.mods),qty:l.qty,price:l.price*l.qty}; })});
+  if(state.history.length>60) state.history.length=60;
+  saveSession();
+
+  var body=$("payBody"),foot=$("payFoot"); body.innerHTML=""; foot.innerHTML="";
+  var word=method==="cash"?("Give them "+money(change)+" back."):method==="card"?"The card was approved.":"Paid with the gift card.";
+  body.innerHTML='<div class="celebrate"><span class="big">'+(perfect?"⭐":"🎉")+'</span>'+
+    '<h3>Order #'+state.orderNum+' is done!</h3><p>'+word+(perfect?'<br>Perfect order!':'')+'</p></div>';
+  say("Order up! "+word);
+  if(method!=="card"){ beep(880,.1); setTimeout(function(){beep(1180,.1);},110); setTimeout(function(){beep(1560,.22);},230); }
+  var b=document.createElement("button"); b.className="bigbtn pay"; b.textContent="👋 Next customer";
+  b.onclick=function(){
+    state.order=[]; state.orderNum++; state.mode=null; saveSession();
+    $("payScrim").classList.remove("on"); $("ticket").classList.remove("open");
+    if(state.customer) newCustomer();
+    renderTicket(); renderGrid(); say("Next customer, please!");
+  };
+  foot.appendChild(b);
+}
+
+/* ================= the pricing matrix ================= */
+var PRICE_DEFAULT={entrees:1,sides:.75,kids:.5,drinks:1,treats:1,sauces:1};
+function pct(v){ return Math.round(v*100)+"%"; }
+
+function renderPricing(){
+  var b=$("priceBody"); b.innerHTML="";
+  var intro=document.createElement("div"); intro.className="pnote";
+  intro.innerHTML="Every food has one price, the price in its own section. When the same food shows up in "+
+    "another section, the price changes by that section's number.<br><br>"+
+    "<b>Price somewhere else = price at home \u00f7 home number \u00d7 the other number</b>, "+
+    "rounded to the nearest quarter so it is easy to count out in coins.";
+  b.appendChild(intro);
+
+  var t=document.createElement("table"); t.className="pmatrix"; t.style.marginTop="12px";
+  t.innerHTML="<tr><th>Section</th><th>Portion</th><th>Example</th></tr>";
+  CATS.forEach(function(c){
+    var tr=document.createElement("tr");
+    var td1=document.createElement("td"); td1.innerHTML=c.ic+" "+c.name;
+    var td2=document.createElement("td");
+    var inp=document.createElement("input"); inp.type="number"; inp.step="5"; inp.min="10"; inp.max="200";
+    inp.value=Math.round((SECTION_PRICE[c.id]||1)*100); inp.inputMode="numeric";
+    inp.onchange=function(){
+      var v=parseFloat(inp.value); if(isNaN(v)||v<10) v=100;
+      SECTION_PRICE[c.id]=v/100; store.set("ou_pricing",SECTION_PRICE);
+      beep(880,.06); renderPricing(); renderGrid();
+    };
+    td2.appendChild(inp); td2.appendChild(document.createTextNode(" %"));
+    var td3=document.createElement("td");
+    td3.textContent="$4.00 \u2192 "+money(Math.round(4*(SECTION_PRICE[c.id]||1)*4)/4);
+    tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3); t.appendChild(tr);
+  });
+  b.appendChild(t);
+
+  var any=false;
+  getMenu().forEach(function(m){
+    if(!m.also||!m.also.length||!m.price) return;
+    any=true;
+    var d=document.createElement("div"); d.className="pexample";
+    var line="<b>"+m.name+"</b> lives in "+sectionName(m.cat)+" at "+money(m.price)+".";
+    m.also.forEach(function(cid){
+      line+="<br>In "+sectionName(cid)+" ("+pct(SECTION_PRICE[cid]||1)+"): "+money(m.price)+
+        " \u00f7 "+pct(SECTION_PRICE[m.cat]||1)+" \u00d7 "+pct(SECTION_PRICE[cid]||1)+
+        " = <b>"+money(priceIn(m,cid))+"</b>";
+    });
+    d.innerHTML=line; b.appendChild(d);
+  });
+  if(!any){
+    var none=document.createElement("div"); none.className="pexample";
+    none.textContent="No food is in two sections yet. Put one in a second section with the pencil button and the math shows up here.";
+    b.appendChild(none);
+  }
+}
+$("priceBtn").onclick=function(){ renderPricing(); beep(760,.07); $("priceScrim").classList.add("on"); };
+$("priceX").onclick=function(){ $("priceScrim").classList.remove("on"); };
+$("priceClose").onclick=function(){ $("priceScrim").classList.remove("on"); };
+$("priceReset").onclick=function(){
+  SECTION_PRICE=clone(PRICE_DEFAULT); store.set("ou_pricing",SECTION_PRICE);
+  beep(500,.12); renderPricing(); renderGrid();
+};
+
+/* ================= readable menu, built from the live data ================= */
+function optTxt(o){ return o.label+(o.d?(o.d>0?" +"+money(o.d):" -"+money(-o.d)):""); }
+function listNames(a){ return a.map(function(x){ return x.name+(x.price?" +"+money(x.price):""); }).join(", "); }
+
+function renderMenuSheet(){
+  var b=$("menuBody"); b.innerHTML="";
+  var head=document.createElement("div"); head.className="mhead";
+  head.innerHTML="<h1>\ud83d\udc14 Auggie's New Restaurant</h1><p>MENU</p>";
+  b.appendChild(head);
+  var all=getMenu();
+  CATS.forEach(function(c){
+    var items=all.filter(function(m){ return m.cat===c.id; });   /* primary section only */
+    if(!items.length) return;
+    var h=document.createElement("h3"); h.className="mcat"; h.innerHTML=c.ic+" "+c.name; b.appendChild(h);
+    items.forEach(function(m){
+      var row=document.createElement("div"); row.className="mitem";
+      row.innerHTML='<div class="mtop"><span class="mic">'+icoInner(m.ic)+'</span>'+
+        '<span class="mname">'+m.name+'</span><span class="mdots"></span>'+
+        '<span class="mprice">'+(m.price===0?"free":money(m.price))+'</span></div>';
+      var notes=[];
+      if(m.sizes) notes.push("<b>Sizes:</b> small -$0.40, medium, large +$0.70");
+      (m.choices||[]).forEach(function(q){
+        if(q.opts&&q.opts.length)
+          notes.push("<b>"+q.name.replace(/\?$/,"")+":</b> "+q.opts.map(optTxt).join(", "));
+      });
+      if(m.parts&&m.parts.length)
+        notes.push("<b>Comes with:</b> "+m.parts.map(function(x){ return x.name; }).join(", ")+
+          " (say the word to leave any of it off)");
+      if(m.extras&&m.extras.length)
+        notes.push("<b>"+((m.parts&&m.parts.length)?"Add":"Choose your toppings")+":</b> "+listNames(m.extras));
+      if(m.meal) notes.push("<b>Make it a meal</b> +$2.99 with a side, a drink and a dipping sauce, large meal +$3.79");
+      if(m.kidsmeal) notes.push("<b>Comes with</b> a side, a drink, a dipping sauce and a toy, "+
+        "or just the food on its own -$1.50");
+      if(m.kidsok) notes.push("<b>Kids meal</b> +$2.00 with a smaller side, a drink and a toy");
+      if(m.also&&m.also.length) notes.push("<b>Also served as:</b> "+m.also.map(function(id){
+        var nm=sectionName(id).toLowerCase().replace(/s$/,"");
+        var word=id==="kids"?"a kids portion":(("aeiou".indexOf(nm.charAt(0))>=0?"an ":"a ")+nm+" portion");
+        return word+" "+money(priceIn(m,id)); }).join(", "));
+      if(m.sauces&&!m.kidsmeal&&!m.meal) notes.push("<b>Pick a dipping sauce</b>");
+      notes.forEach(function(n){
+        var d=document.createElement("div"); d.className="mnote"; d.innerHTML=n; row.appendChild(d);
+      });
+      b.appendChild(row);
+    });
+  });
+}
+$("menuBtn").onclick=function(){ renderMenuSheet(); beep(760,.07); $("menuScrim").classList.add("on"); };
+$("menuX").onclick=function(){ $("menuScrim").classList.remove("on"); };
+$("menuClose").onclick=function(){ $("menuScrim").classList.remove("on"); };
+$("menuPrint").onclick=function(){ try{ window.print(); }catch(e){} };
+
+/* ================= history ================= */
+$("histBtn").onclick=function(){
+  var b=$("histBody"); b.innerHTML="";
+  $("histSub").textContent=state.history.length?state.history.length+" finished this session":"";
+  if(!state.history.length)
+    b.innerHTML='<div class="empty"><span class="big">🧾</span>No finished orders yet.<br>They show up here after you take the money.</div>';
+  state.history.forEach(function(h){
+    var c=document.createElement("div"); c.className="histcard"+(h.perfect?" perfect":"");
+    var mi=modeInfo(h.mode), pm=PAYINFO[h.method]||{ic:"💵"};
+    var top='<div class="top"><span class="num">#'+h.num+'</span><span>'+h.time+'</span><span>'+mi.ic+'</span>'+
+      '<span>'+pm.ic+'</span>'+(h.perfect?'<span>⭐</span>':'')+'<span class="tot">'+money(h.total)+'</span></div>';
+    var items=h.items.map(function(i){
+      return '<div class="it">'+i.qty+'× '+mini(i.ic)+' '+i.name+(i.mods?'<br><span style="opacity:.75">'+i.mods+'</span>':'')+'</div>';
+    }).join("");
+    c.innerHTML=top+items+(h.change?'<div class="it">Change given: '+money(h.change)+'</div>':'');
+    b.appendChild(c);
+  });
+  $("histScrim").classList.add("on");
+};
+$("histX").onclick=function(){ $("histScrim").classList.remove("on"); };
+
+/* ================= editor ================= */
+var draft=null,draftIsNew=false,draftBaseId=null,duoMode=false;
+function openEditor(id){
+  if(id){ draft=clone(findItem(id)); draftIsNew=false; draftBaseId=id; $("edTitle").textContent="Edit "+draft.name; }
+  else{ draft={id:"c"+Date.now(),cat:state.cat,name:"",ic:"\ud83c\udf54",price:0,sizes:0,meal:false,kidsmeal:false,
+        kidsok:false,sauces:false,dip:false,also:[],parts:[],extras:[],choices:[],custom:true};
+        draftIsNew=true; draftBaseId=null;
+        $("edTitle").textContent="Make a new food"; }
+  if(!draft.parts) draft.parts=[];
+  if(!draft.extras) draft.extras=[];
+  if(!draft.choices) draft.choices=[];
+  if(!draft.also) draft.also=[];
+  duoMode=iconCount(draft.ic)>1;
+  renderEditor(); $("editScrim").classList.add("on");
+}
+$("edX").onclick=function(){ $("editScrim").classList.remove("on"); draft=null; };
+
+function label(t){ var d=document.createElement("div"); d.className="field"; d.style.marginBottom="6px";
+  d.innerHTML='<label>'+t+'</label>'; return d; }
+function fieldText(l,v,ph,cb){
+  var d=document.createElement("div"); d.className="field"; d.innerHTML='<label>'+l+'</label>';
+  var i=document.createElement("input"); i.value=v||""; i.placeholder=ph; i.maxLength=26;
+  i.oninput=function(){ cb(i.value); }; d.appendChild(i); return d;
+}
+function fieldNum(l,v,cb){
+  var d=document.createElement("div"); d.className="field"; d.innerHTML='<label>'+l+'</label>';
+  var i=document.createElement("input"); i.type="number"; i.step="0.25"; i.min="0"; i.inputMode="decimal";
+  i.value=(v||v===0)?v:""; i.placeholder="3.50";
+  i.oninput=function(){ var n=parseFloat(i.value); cb(isNaN(n)?0:Math.round(n*100)/100); };
+  d.appendChild(i); return d;
+}
+var partEmo="🥬",extraEmo="🥓",optEmo="🍓";
+function btnIco(s){ return isArt(s)?'<span class="mini">'+icoInner(s)+'</span>':s; }
+
+/* full picture list in a modal instead of tapping through one at a time - M. Tembo - 9/6/26 */
+var pickCb=null;
+function openPicker(current,cb){
+  pickCb=cb;
+  var body=$("pickBody"); body.innerHTML="";
+  var g=document.createElement("div"); g.className="emopick";
+  function add(val,html){
+    var b=document.createElement("button");
+    b.className="emo"+(current===val?" on":"");
+    b.innerHTML=html;
+    b.onclick=function(){
+      $("pickScrim").classList.remove("on");
+      var f=pickCb; pickCb=null; beep(990,.06); if(f) f(val);
+    };
+    g.appendChild(b);
+  }
+  Object.keys(ART).forEach(function(k){ add("art:"+k,ART[k]); });
+  EMOJIS.forEach(function(e){ add(e,e); });
+  body.appendChild(g);
+  $("pickScrim").classList.add("on");
+}
+$("pickX").onclick=function(){ $("pickScrim").classList.remove("on"); pickCb=null; };
+
+function renderEditor(){
+  $("edIc").innerHTML=icoInner(draft.ic);
+  var b=$("edBody"); b.innerHTML="";
+  b.appendChild(fieldText("What is it called?",draft.name,"Cheeseburger",function(v){ draft.name=v; }));
+  b.appendChild(fieldNum("Price",draft.price,function(v){ draft.price=v; }));
+
+  b.appendChild(label("Pick a picture"));
+  var prev=document.createElement("div"); prev.className="iconprev"; prev.innerHTML=icoInner(draft.ic); b.appendChild(prev);
+  var duo=document.createElement("div"); duo.className="seg";
+  [{v:false,l:"1 picture"},{v:true,l:"2 pictures"}].forEach(function(o){
+    var db=document.createElement("button"); db.className=duoMode===o.v?"on":""; db.textContent=o.l;
+    db.onclick=function(){ duoMode=o.v;
+      if(!o.v&&iconCount(draft.ic)>1) draft.ic=Array.from(draft.ic)[0];
+      beep(700,.05); renderEditor(); };
+    duo.appendChild(db);
+  });
+  b.appendChild(duo);
+  var pk=document.createElement("div"); pk.className="emopick";
+  Object.keys(ART).forEach(function(k){                 /* drawn icons first - M. Tembo - 9/6/26 */
+    var key="art:"+k;
+    var ab=document.createElement("button"); ab.className="emo"+(draft.ic===key?" on":"");
+    ab.innerHTML=ART[k];
+    ab.onclick=function(){ draft.ic=key; duoMode=false; beep(990,.05); renderEditor(); };
+    pk.appendChild(ab);
+  });
+  EMOJIS.forEach(function(e){
+    var eb=document.createElement("button"); eb.className="emo"+(draft.ic===e?" on":""); eb.textContent=e;
+    eb.onclick=function(){
+      if(duoMode){ draft.ic = iconCount(draft.ic)>=2 ? e : draft.ic+e; }
+      else draft.ic=e;
+      beep(990,.05); renderEditor();
+    };
+    pk.appendChild(eb);
+  });
+  b.appendChild(pk);
+
+  b.appendChild(label("Which section?"));
+  var seg=document.createElement("div"); seg.className="seg";
+  CATS.forEach(function(c){
+    var cb=document.createElement("button"); cb.className=draft.cat===c.id?"on":""; cb.innerHTML=c.ic+" "+c.name;
+    cb.onclick=function(){ draft.cat=c.id; beep(700,.05); renderEditor(); };
+    seg.appendChild(cb);
+  });
+  b.appendChild(seg);
+
+  b.appendChild(label("Also show it in these sections"));
+  var also=document.createElement("div"); also.className="seg";
+  draft.also=draft.also||[];
+  CATS.forEach(function(c){
+    if(c.id===draft.cat) return;
+    var on=draft.also.indexOf(c.id)!==-1;
+    var ab=document.createElement("button"); ab.className=on?"on":"";
+    ab.innerHTML=c.ic+" "+c.name+(on&&draft.price?" "+money(priceIn(draft,c.id)):"");
+    ab.onclick=function(){
+      var k=draft.also.indexOf(c.id);
+      if(k===-1) draft.also.push(c.id); else draft.also.splice(k,1);
+      beep(700,.05); renderEditor();
+    };
+    also.appendChild(ab);
+  });
+  b.appendChild(also);
+
+  b.appendChild(label("Does it come in sizes?"));
+  var sz=document.createElement("div"); sz.className="seg";
+  [{v:0,l:"No sizes"},{v:"food",l:"🍽️ Food sizes"},{v:"cup",l:"🥤 Cup sizes"}].forEach(function(o){
+    var sb=document.createElement("button"); sb.className=(draft.sizes||0)===o.v?"on":""; sb.textContent=o.l;
+    sb.onclick=function(){ draft.sizes=o.v; beep(700,.05); renderEditor(); };
+    sz.appendChild(sb);
+  });
+  b.appendChild(sz);
+
+  b.appendChild(label("Meals and sauces"));
+  var ml=document.createElement("div"); ml.className="seg";
+  [["meal","\ud83c\udf5f Combo meal"],["kidsmeal","\ud83e\uddf8 Kids meal"],
+   ["kidsok","\ud83e\uddf8 Can be a kids meal"],
+   ["sauces","\ud83e\udd63 Comes with sauce"],["dip","\ud83e\udd62 Is a dipping sauce"]].forEach(function(o){
+    var btn=document.createElement("button"); btn.className=draft[o[0]]?"on":""; btn.innerHTML=o[1];
+    btn.onclick=function(){ draft[o[0]]=!draft[o[0]]; beep(700,.05); renderEditor(); };
+    ml.appendChild(btn);
+  });
+  b.appendChild(ml);
+
+  /* ---- choice questions (flavors, kinds, counts) - M. Tembo - 9/6/26 ---- */
+  b.appendChild(label("Questions to ask (flavors, kinds, how many)"));
+  draft.choices.forEach(function(q,qi){
+    var box=document.createElement("div"); box.className="qbox";
+    var head=document.createElement("div"); head.className="qhead";
+    var qn=document.createElement("input"); qn.value=q.name; qn.placeholder="Which flavor?";
+    qn.oninput=function(){ q.name=qn.value; };
+    var qd=document.createElement("button"); qd.textContent="🗑";
+    qd.onclick=function(){ draft.choices.splice(qi,1); beep(300,.08); renderEditor(); };
+    head.appendChild(qn); head.appendChild(qd); box.appendChild(head);
+
+    var chips=document.createElement("div"); chips.className="chips";
+    (q.opts||[]).forEach(function(o,oi){
+      var c=document.createElement("span"); c.className="chip"+(o.d?" money":"");
+      c.innerHTML='<span>'+mini(o.ic)+' '+o.label+(o.d?" "+(o.d>0?"+":"")+money(o.d):"")+'</span>';
+      var x=document.createElement("button"); x.className="x"; x.textContent="✕";
+      x.onclick=function(){ q.opts.splice(oi,1); beep(300,.07); renderEditor(); };
+      c.appendChild(x); chips.appendChild(c);
+    });
+    if(!q.opts||!q.opts.length){ var n=document.createElement("span"); n.className="chip";
+      n.style.opacity=".6"; n.textContent="no answers yet"; chips.appendChild(n); }
+    box.appendChild(chips);
+
+    var pre=document.createElement("div"); pre.className="presets";
+    FLAVOR_PRESETS.forEach(function(f){
+      var pb=document.createElement("button"); pb.className="preset"; pb.innerHTML=f.ic+" "+f.label;
+      pb.onclick=function(){ q.opts=q.opts||[]; q.opts.push({label:f.label,ic:f.ic,d:0}); beep(990,.05); renderEditor(); };
+      pre.appendChild(pb);
+    });
+    box.appendChild(pre);
+
+    var row=document.createElement("div"); row.className="addrow";
+    var ln=document.createElement("input"); ln.placeholder="another answer...";
+    var lp=document.createElement("input"); lp.className="p"; lp.type="number"; lp.step="0.25"; lp.placeholder="+$"; lp.inputMode="decimal";
+    var le=document.createElement("button"); le.className="emobtn"; le.innerHTML=btnIco(optEmo);
+    le.onclick=function(){ openPicker(optEmo,function(v){ optEmo=v; le.innerHTML=btnIco(optEmo); }); };
+    var la=document.createElement("button"); la.textContent="Add";
+    la.onclick=function(){
+      var v=ln.value.trim(); if(!v) return;
+      var d=parseFloat(lp.value); if(isNaN(d)) d=0;
+      q.opts=q.opts||[]; q.opts.push({label:v,ic:optEmo,d:Math.round(d*100)/100});
+      beep(990,.06); renderEditor();
+    };
+    row.appendChild(ln); row.appendChild(lp); row.appendChild(le); row.appendChild(la);
+    box.appendChild(row);
+    b.appendChild(box);
+  });
+  var addq=document.createElement("div"); addq.className="presets"; addq.style.marginBottom="14px";
+  ["Which flavor?","Which kind?","How many?","Anything else?"].forEach(function(nm){
+    var qb=document.createElement("button"); qb.className="preset"; qb.textContent="➕ "+nm;
+    qb.onclick=function(){ draft.choices.push({name:nm,opts:[]}); beep(990,.06); renderEditor(); };
+    addq.appendChild(qb);
+  });
+  b.appendChild(addq);
+
+  /* ---- components ---- */
+  b.appendChild(label("What's on it? (each gets a 'no' and an 'extra')"));
+  var chips=document.createElement("div"); chips.className="chips";
+  draft.parts.forEach(function(p,i){
+    var c=document.createElement("span"); c.className="chip"; c.innerHTML='<span>'+mini(p.ic)+' '+p.name+'</span>';
+    var x=document.createElement("button"); x.className="x"; x.textContent="✕";
+    x.onclick=function(){ draft.parts.splice(i,1); beep(300,.07); renderEditor(); };
+    c.appendChild(x); chips.appendChild(c);
+  });
+  if(!draft.parts.length){ var nn=document.createElement("span"); nn.className="chip";
+    nn.style.opacity=".6"; nn.textContent="nothing yet"; chips.appendChild(nn); }
+  b.appendChild(chips);
+  var pre2=document.createElement("div"); pre2.className="presets";
+  PART_PRESETS.forEach(function(p){
+    var pb=document.createElement("button"); pb.className="preset"; pb.innerHTML=p.ic+" "+p.name;
+    pb.onclick=function(){ draft.parts.push({name:p.name,ic:p.ic}); beep(990,.05); renderEditor(); };
+    pre2.appendChild(pb);
+  });
+  b.appendChild(pre2);
+  var ar=document.createElement("div"); ar.className="addrow";
+  var ai=document.createElement("input"); ai.placeholder="something else...";
+  var ae=document.createElement("button"); ae.className="emobtn"; ae.innerHTML=btnIco(partEmo);
+  ae.onclick=function(){ openPicker(partEmo,function(v){ partEmo=v; ae.innerHTML=btnIco(partEmo); }); };
+  var ab=document.createElement("button"); ab.textContent="Add";
+  ab.onclick=function(){ var v=ai.value.trim(); if(!v) return;
+    draft.parts.push({name:v,ic:partEmo}); beep(990,.06); renderEditor(); };
+  ar.appendChild(ai); ar.appendChild(ae); ar.appendChild(ab); b.appendChild(ar);
+
+  /* ---- paid extras ---- */
+  b.appendChild(label("Extras they can add (with a price)"));
+  var ec=document.createElement("div"); ec.className="chips";
+  draft.extras.forEach(function(x,i){
+    var c=document.createElement("span"); c.className="chip money";
+    c.innerHTML='<span>'+mini(x.ic)+' '+x.name+' '+(x.price?money(x.price):"free")+'</span>';
+    var xb=document.createElement("button"); xb.className="x"; xb.textContent="✕";
+    xb.onclick=function(){ draft.extras.splice(i,1); beep(300,.07); renderEditor(); };
+    c.appendChild(xb); ec.appendChild(c);
+  });
+  if(!draft.extras.length){ var n2=document.createElement("span"); n2.className="chip";
+    n2.style.opacity=".6"; n2.textContent="none yet"; ec.appendChild(n2); }
+  b.appendChild(ec);
+  var er=document.createElement("div"); er.className="addrow";
+  var en=document.createElement("input"); en.placeholder="beef bacon";
+  var ep=document.createElement("input"); ep.className="p"; ep.type="number"; ep.step="0.25"; ep.placeholder="1.00"; ep.inputMode="decimal";
+  var ee=document.createElement("button"); ee.className="emobtn"; ee.innerHTML=btnIco(extraEmo);
+  ee.onclick=function(){ openPicker(extraEmo,function(v){ extraEmo=v; ee.innerHTML=btnIco(extraEmo); }); };
+  var eb2=document.createElement("button"); eb2.textContent="Add";
+  eb2.onclick=function(){ var v=en.value.trim(); if(!v) return;
+    var p=parseFloat(ep.value); if(isNaN(p)||p<0) p=0;
+    draft.extras.push({name:v,ic:extraEmo,price:Math.round(p*100)/100}); beep(990,.06); renderEditor(); };
+  er.appendChild(en); er.appendChild(ep); er.appendChild(ee); er.appendChild(eb2); b.appendChild(er);
+
+  var f=$("edFoot"); f.innerHTML="";
+  if(!draftIsNew){
+    var del=document.createElement("button"); del.className="bigbtn danger"; del.style.flex="0 0 60px"; del.textContent="🗑";
+    del.onclick=function(){
+      if(draft.custom) state.custom=state.custom.filter(function(c){ return c.id!==draft.id; });
+      else state.hidden[draft.id]=1;
+      delete state.over[draft.id]; saveMenu();
+      $("editScrim").classList.remove("on"); beep(220,.18); renderGrid();
+    };
+    f.appendChild(del);
+    if(!draft.custom&&state.over[draft.id]){
+      var rst=document.createElement("button"); rst.className="bigbtn ghost"; rst.style.flex="0 0 60px"; rst.textContent="↩";
+      rst.onclick=function(){ delete state.over[draft.id]; saveMenu();
+        $("editScrim").classList.remove("on"); beep(500,.1); renderGrid(); };
+      f.appendChild(rst);
+    }
+  }
+  var save=document.createElement("button"); save.className="bigbtn pay"; save.textContent="✅ Save";
+  save.onclick=saveDraft; f.appendChild(save);
+}
+
+function saveDraft(){
+  if(!draft.name.trim()){ beep(200,.2,"sawtooth"); say("It needs a name"); return; }
+  draft.choices=(draft.choices||[]).filter(function(q){ return q.opts&&q.opts.length; });
+  if(draftIsNew||draft.custom){
+    var found=false;
+    state.custom.forEach(function(c,i){ if(c.id===draft.id){ state.custom[i]=draft; found=true; } });
+    if(!found){ draft.custom=true; state.custom.push(draft); }
+  }else{
+    state.over[draftBaseId]={name:draft.name,ic:draft.ic,price:draft.price,cat:draft.cat,sizes:draft.sizes||0,
+      meal:!!draft.meal,kidsmeal:!!draft.kidsmeal,kidsok:!!draft.kidsok,sauces:!!draft.sauces,dip:!!draft.dip,
+      also:draft.also||[],parts:draft.parts,extras:draft.extras,choices:draft.choices};
+  }
+  saveMenu(); state.cat=draft.cat;
+  $("editScrim").classList.remove("on"); beep(1320,.12); say(draft.name+" saved");
+  renderRail(); renderGrid(); draft=null;
+}
+
+/* ================= export / import ================= */
+function bundle(){ return {version:4,custom:state.custom,over:state.over,hidden:state.hidden,pricing:SECTION_PRICE}; }
+function saveBlob(text,type,filename){
+  try{
+    var blob=new Blob([text],{type:type});
+    var a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(a.href); },2000);
+    return true;
+  }catch(e){ return false; }
+}
+/* the whole app, with every edit baked inside it - M. Tembo - 9/6/26 */
+function exportWholeFile(btn){
+  btn.textContent="⏳ Building...";
+  fetch(location.href,{cache:"no-store"}).then(function(r){ return r.text(); }).then(function(src){
+    var payload=JSON.stringify({stamp:Date.now(),custom:state.custom,over:state.over,
+      hidden:state.hidden,pricing:SECTION_PRICE}).replace(/</g,"\\u003c");
+    var marker="var BAKED=null;/*BAKE*/";
+    if(src.indexOf(marker)===-1) throw new Error("marker missing");
+    var out=src.replace(marker,"var BAKED="+payload+";/*BAKE*/");
+    var stamp=new Date().toISOString().slice(0,10);
+    if(!saveBlob(out,"text/html","auggies-restaurant-"+stamp+".html")) throw new Error("download blocked");
+    btn.textContent="✅ Downloaded";
+  }).catch(function(){
+    btn.textContent="⚠️ Needs a web address";
+    $("jsonSub").textContent="Whole-file export needs the page opened from a web address, not a local file. "+
+      "The menu file below works either way.";
+  });
+}
+$("exportBtn").onclick=function(){
+  $("jsonTitle").textContent="Export";
+  $("jsonSub").textContent="Take the whole app, or just the menu";
+  $("jsonBox").value=JSON.stringify(bundle(),null,2);
+  var f=$("jsonFoot"); f.innerHTML="";
+  var whole=document.createElement("button"); whole.className="bigbtn pay";
+  whole.innerHTML="💾 Whole app (.html)";
+  whole.onclick=function(){ exportWholeFile(whole); };
+  var dl=document.createElement("button"); dl.className="bigbtn ghost"; dl.style.flex="0 0 78px";
+  dl.textContent="⬇ .json";
+  dl.onclick=function(){ if(!saveBlob($("jsonBox").value,"application/json","auggies-menu.json"))
+    alert("Download blocked. Copy the text instead."); };
+  var cp=document.createElement("button"); cp.className="bigbtn ghost"; cp.style.flex="0 0 70px";
+  cp.textContent="📋";
+  cp.onclick=function(){ var t=$("jsonBox"); t.select(); t.setSelectionRange(0,999999);
+    try{ document.execCommand("copy"); cp.textContent="✅"; }catch(e){} };
+  f.appendChild(whole); f.appendChild(dl); f.appendChild(cp); $("jsonScrim").classList.add("on");
+};
+$("importBtn").onclick=function(){
+  $("jsonTitle").textContent="Import menu"; $("jsonSub").textContent="Paste a menu file here";
+  $("jsonBox").value="";
+  var f=$("jsonFoot"); f.innerHTML="";
+  var go=document.createElement("button"); go.className="bigbtn pay"; go.textContent="📥 Load it";
+  go.onclick=function(){ try{
+    var d=JSON.parse($("jsonBox").value);
+    state.custom=d.custom||[]; state.over=d.over||{}; state.hidden=d.hidden||{};
+    if(d.pricing){ SECTION_PRICE=d.pricing; store.set("ou_pricing",SECTION_PRICE); }
+    saveMenu(); $("jsonScrim").classList.remove("on"); renderRail(); renderGrid(); beep(1320,.14); say("Menu loaded");
+  }catch(e){ alert("That is not a valid menu file."); } };
+  f.appendChild(go); $("jsonScrim").classList.add("on");
+};
+$("jsonX").onclick=function(){ $("jsonScrim").classList.remove("on"); };
+$("resetAllBtn").onclick=function(){
+  if(!confirm("Put the whole menu back to the way it started?")) return;
+  state.custom=[]; state.over={}; state.hidden={}; saveMenu(); renderRail(); renderGrid(); beep(400,.2);
+};
+
+/* ================= toggles ================= */
+$("talkBtn").onclick=function(){
+  state.talk=!state.talk; store.set("ou_talk",state.talk);
+  this.classList.toggle("off",!state.talk); this.textContent=state.talk?"🔊":"🔇";
+  if(state.talk) say("Sound is on");
+};
+$("custBtn").onclick=function(){
+  state.customer=!state.customer; this.classList.toggle("off",!state.customer);
+  $("customer").classList.toggle("on",state.customer);
+  if(state.customer) newCustomer(); else { want=null; renderCustomer(); }
+};
+$("editBtn").onclick=function(){
+  state.editing=!state.editing; this.classList.toggle("off",!state.editing);
+  document.body.classList.toggle("editing",state.editing);
+  renderTicket(); renderGrid();
+};
+$("customer").onclick=function(){ if(state.customer) newCustomer(); };
+$("drawerbar").onclick=function(){ $("ticket").classList.add("open"); beep(700,.06); };
+$("closeDrawer").onclick=function(){ $("ticket").classList.remove("open"); };
+
+/* ================= go ================= */
+try{
+  $("talkBtn").classList.toggle("off",!state.talk); $("talkBtn").textContent=state.talk?"🔊":"🔇";
+  $("custBtn").classList.add("off"); $("editBtn").classList.add("off");
+  renderRail(); renderGrid(); renderTicket();
+}catch(err){
+  state.custom=[]; state.over={}; state.hidden={};
+  try{ renderRail(); renderGrid(); renderTicket(); }
+  catch(e2){ $("bootwhy").textContent=(e2&&e2.message)||String(e2); $("bootmsg").className="on"; }
+}
+</script>
+</body>
+</html>
