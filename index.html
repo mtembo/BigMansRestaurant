@@ -4,6 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Auggie's">
+<meta name="theme-color" content="#E23B2E">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
 <title>Auggie's New Restaurant</title>
 <!-- Auggie's New Restaurant - order counter - M. Tembo - 9/6/26 -->
 <style>
@@ -258,6 +264,10 @@ table.pmatrix input{width:74px;font-size:16px;font-weight:800;padding:6px 8px;bo
 .pexample{background:var(--paper);border:3px solid var(--line);border-radius:12px;padding:9px 11px;
   margin-top:8px;font-size:14px;font-weight:500;line-height:1.5}
 .pexample b{font-weight:800}
+#toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%) scale(.92);z-index:40;
+  background:var(--ink);color:#fff;padding:13px 24px;border-radius:20px;font-size:27px;line-height:1.2;
+  opacity:0;transition:opacity .16s ease,transform .16s ease;pointer-events:none;max-width:88vw;text-align:center}
+#toast.on{opacity:.96;transform:translateX(-50%) scale(1)}
 #drawerbar{display:none}
 @media (max-width:900px){
   main{grid-template-columns:1fr;grid-template-rows:auto 1fr}
@@ -336,6 +346,8 @@ table.pmatrix input{width:74px;font-size:16px;font-weight:800;padding:6px 8px;bo
   </main>
 </div>
 
+<div id="toast"></div>
+
 <div id="drawerbar"><span>🧾</span><span class="cnt" id="barCount">0</span><span id="barMode">🍽️</span><span class="tot" id="barTotal">$0.00</span></div>
 
 <div class="scrim" id="modeScrim"><div class="sheet">
@@ -374,6 +386,14 @@ table.pmatrix input{width:74px;font-size:16px;font-weight:800;padding:6px 8px;bo
     <button class="x" id="payX">✕</button></div>
   <div class="sheet-body" id="payBody"></div>
   <div class="sheet-foot" id="payFoot"></div>
+</div></div>
+
+<div class="scrim" id="voiceScrim"><div class="sheet">
+  <div class="sheet-head"><span class="ic">🔇</span>
+    <div><h3 id="voiceTitle">No voice on this tablet</h3><div class="sub">Words will flash on screen instead</div></div>
+    <button class="x" id="voiceX">✕</button></div>
+  <div class="sheet-body" id="voiceBody"></div>
+  <div class="sheet-foot"><button class="bigbtn pay" id="voiceClose">OK</button></div>
 </div></div>
 
 <div class="scrim" id="priceScrim"><div class="sheet">
@@ -814,9 +834,71 @@ function beep(f,d,t){ try{
   g.gain.exponentialRampToValueAtTime(.001,actx.currentTime+d);
   o.connect(g); g.connect(actx.destination); o.start(); o.stop(actx.currentTime+d);
 }catch(e){} }
-function say(t){ if(!state.talk) return;
-  try{ window.speechSynthesis.cancel(); var u=new SpeechSynthesisUtterance(t); u.rate=.9; u.pitch=1.15;
-  window.speechSynthesis.speak(u); }catch(e){} }
+var speech={api:false,voices:0,spoke:false,failed:false};
+function loadVoices(){
+  try{ speech.voices=(window.speechSynthesis.getVoices()||[]).length; }catch(e){ speech.voices=0; }
+}
+function initSpeech(){
+  speech.api=("speechSynthesis" in window)&&(typeof window.SpeechSynthesisUtterance!=="undefined");
+  if(!speech.api) return;
+  loadVoices();
+  try{ window.speechSynthesis.onvoiceschanged=loadVoices; }catch(e){}
+  setTimeout(loadVoices,500); setTimeout(loadVoices,1800); setTimeout(loadVoices,4000);
+}
+function showToast(t){
+  var el=$("toast"); if(!el||!t) return;
+  el.textContent=t; el.className="on";
+  clearTimeout(showToast.t);
+  showToast.t=setTimeout(function(){ el.className=""; },1500);
+}
+function speechWorks(){ return speech.api && !speech.failed; }
+function say(t){
+  if(!state.talk||!t) return;
+  if(!speechWorks()){ showToast(t); return; }
+  try{
+    var sy=window.speechSynthesis;
+    sy.cancel(); if(sy.paused) sy.resume();
+    var u=new SpeechSynthesisUtterance(t);
+    u.rate=.9; u.pitch=1.15; u.volume=1; u.lang="en-US";
+    var vs=[]; try{ vs=sy.getVoices()||[]; }catch(e){}
+    if(vs.length){
+      speech.voices=vs.length;
+      var v=null;
+      vs.forEach(function(x){ if(!v&&/^en[-_]?US/i.test(x.lang)) v=x; });
+      vs.forEach(function(x){ if(!v&&/^en/i.test(x.lang)) v=x; });
+      if(v) u.voice=v;
+    }
+    u.onstart=function(){ speech.spoke=true; };
+    u.onerror=function(){ if(!speech.spoke){ speech.failed=true; showToast(t); } };
+    sy.speak(u);
+    if(!speech.spoke && !speech.voices) showToast(t);   /* no voice installed, show the word */
+  }catch(e){ speech.failed=true; showToast(t); }
+}
+function voiceReport(){
+  var b=$("voiceBody"); b.innerHTML="";
+  var ok=speechWorks()&&speech.voices>0;
+  $("voiceTitle").textContent=ok?"Voice is working":"No voice on this tablet";
+  var lines=[];
+  lines.push(speech.api?"✅ This browser can speak":"❌ This browser has no speech built in");
+  lines.push((speech.voices>0?"✅ ":"❌ ")+"Voices installed on the tablet: "+speech.voices);
+  if(speech.failed) lines.push("⚠️ The tablet tried to speak and failed");
+  var d=document.createElement("div"); d.className="pnote";
+  d.innerHTML=lines.join("<br>");
+  b.appendChild(d);
+  var help=document.createElement("div"); help.className="pexample";
+  help.innerHTML= ok
+    ? "Tap any food and you should hear its name. If it is silent, check the tablet volume and that it is not on mute."
+    : "<b>On a Fire tablet:</b> open Settings, then Accessibility, then Text-to-Speech, and make sure a "+
+      "speech engine is turned on and downloaded. Fire tablets often ship with it switched off.<br><br>"+
+      "<b>If that does not help:</b> install Firefox from the Amazon Appstore and open the restaurant there. "+
+      "Silk does not always hand the voice through to web pages.<br><br>"+
+      "<b>Until then:</b> every word he taps flashes in big letters at the bottom of the screen, "+
+      "so he still gets the word next to the picture.";
+  b.appendChild(help);
+  $("voiceScrim").classList.add("on");
+}
+$("voiceX").onclick=function(){ $("voiceScrim").classList.remove("on"); };
+$("voiceClose").onclick=function(){ $("voiceScrim").classList.remove("on"); };
 
 /* ================= modifier groups ================= */
 function sizeOpts(kind){
@@ -1938,8 +2020,7 @@ function exportWholeFile(btn){
     var marker="var BAKED=null;/*BAKE*/";
     if(src.indexOf(marker)===-1) throw new Error("marker missing");
     var out=src.replace(marker,"var BAKED="+payload+";/*BAKE*/");
-    var stamp=new Date().toISOString().slice(0,10);
-    if(!saveBlob(out,"text/html","auggies-restaurant-"+stamp+".html")) throw new Error("download blocked");
+    if(!saveBlob(out,"text/html","index.html")) throw new Error("download blocked");
     btn.textContent="✅ Downloaded";
   }).catch(function(){
     btn.textContent="⚠️ Needs a web address";
@@ -1988,8 +2069,12 @@ $("resetAllBtn").onclick=function(){
 $("talkBtn").onclick=function(){
   state.talk=!state.talk; store.set("ou_talk",state.talk);
   this.classList.toggle("off",!state.talk); this.textContent=state.talk?"🔊":"🔇";
-  if(state.talk) say("Sound is on");
+  if(!state.talk) return;
+  loadVoices();
+  say("Sound is on");
+  if(!speech.api||speech.voices===0||speech.failed) setTimeout(voiceReport,400);
 };
+$("talkBtn").oncontextmenu=function(e){ e.preventDefault(); voiceReport(); return false; };
 $("custBtn").onclick=function(){
   state.customer=!state.customer; this.classList.toggle("off",!state.customer);
   $("customer").classList.toggle("on",state.customer);
@@ -2008,6 +2093,7 @@ $("closeDrawer").onclick=function(){ $("ticket").classList.remove("open"); };
 try{
   $("talkBtn").classList.toggle("off",!state.talk); $("talkBtn").textContent=state.talk?"🔊":"🔇";
   $("custBtn").classList.add("off"); $("editBtn").classList.add("off");
+  initSpeech();
   renderRail(); renderGrid(); renderTicket();
 }catch(err){
   state.custom=[]; state.over={}; state.hidden={};
