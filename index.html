@@ -180,6 +180,14 @@ body.needmode #rail{opacity:.35;pointer-events:none}
 .ordrow .n{flex:1;min-width:0;overflow-wrap:anywhere}
 .ordrow button{background:var(--sun);border-radius:9px;padding:6px 11px;font-size:15px;line-height:1}
 .ordrow button:disabled{opacity:.25}
+.ordrow.hid{opacity:.45}
+.ordrow .w{font-size:11px;font-weight:800;background:var(--cream);border:2px solid var(--line);
+  border-radius:999px;padding:2px 7px;white-space:nowrap;flex:0 0 auto}
+.ordrow .w.meal{background:#FFF0CC;border-color:#E0A81F}
+.ordrow .w.kid{background:#E7F4EC;border-color:#A9D9BE}
+.ordrow button.eye{background:var(--slate-2);color:#fff}
+.hintbox{font-size:13px;font-weight:500;line-height:1.5;color:#6E6152;background:var(--paper);
+  border:3px solid var(--line);border-radius:12px;padding:9px 11px;margin-bottom:13px}
 textarea#jsonBox{width:100%;height:210px;font-family:monospace;font-size:12px;padding:10px;border:3px solid var(--line);border-radius:12px;background:var(--paper);color:var(--ink)}
 
 .money-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
@@ -552,6 +560,17 @@ var ART={
  "sauce-honey": sauceCup("#F2B430"),
  "sauce-buffalo": sauceCup("#E2542B"),
  "sauce-poly": sauceCup("#C4682B"),
+ fruitcup: sv(
+   '<path d="M18 27h28l-3.5 25a4 4 0 0 1-4 3.5H25.5a4 4 0 0 1-4-3.5z" fill="#EDF3F6" stroke="#C9D5DB" stroke-width="2"/>'+
+   '<g opacity=".38"><circle cx="26" cy="38" r="4.6" fill="#E2453B"/>'+
+   '<circle cx="37" cy="42" r="4" fill="#F0A030"/><circle cx="30" cy="47" r="3.6" fill="#7B4A9C"/></g>'+
+   '<ellipse cx="32" cy="27" rx="14" ry="3.8" fill="#E3EBEF" stroke="#C9D5DB" stroke-width="1.5"/>'+
+   '<circle cx="20" cy="24" r="5" fill="#7B4A9C"/>'+
+   '<circle cx="44" cy="24" r="5.6" fill="#F0A030"/><circle cx="44" cy="24" r="2.2" fill="#FFD08A"/>'+
+   '<circle cx="33" cy="25" r="4.6" fill="#7EBE5A"/>'+
+   '<circle cx="37" cy="18" r="4.6" fill="#4E6FB5"/>'+
+   '<circle cx="27" cy="19" r="6" fill="#E2453B"/>'+
+   '<path d="M27 12.5l-3 2.5 3 1 3-1z" fill="#5FB55A"/>'),
  "sauce-bleu": sauceCup("#F6F4EA",'<g fill="#6E7F94" opacity=".8"><circle cx="27" cy="24" r="1.5"/>'+
    '<circle cx="36" cy="26" r="1.3"/><circle cx="32" cy="22.5" r="1.2"/><circle cx="40" cy="23.5" r="1.1"/>'+
    '<circle cx="24" cy="26.5" r="1.1"/></g>'),
@@ -680,12 +699,13 @@ var MENU=[
             {label:"Waffle",ic:"art:fries",d:0},{label:"Sweet potato",ic:"art:fries-sweet",d:.5}]}],
   parts:[{name:"salt",ic:"🧂"}],extras:[{name:"cheese sauce",ic:"🧀",price:.8},{name:"extra crispy",ic:"🔥",price:0}]},
  {id:"mac",cat:"sides",also:["entrees"],name:"Mac & Cheese",ic:"art:mac",price:3.49,sizes:"food"},
- {id:"fruit",cat:"sides",name:"Fruit Cup",ic:"🍓",price:3.49,
+ {id:"fruit",cat:"sides",name:"Fruit Cup",ic:"art:fruitcup",price:3.49,
   parts:[{name:"apples",ic:"🍎"},{name:"oranges",ic:"🍊"},{name:"grapes",ic:"🍇"},
          {name:"blueberries",ic:"🫐"},{name:"strawberries",ic:"🍓"}]},
  {id:"apples",cat:"sides",name:"Apple Slices",ic:"🍎",price:2.00},
  {id:"oranges",cat:"sides",name:"Orange Slices",ic:"🍊",price:2.00},
  {id:"strawb",cat:"sides",name:"Strawberries",ic:"🍓",price:2.00},
+ {id:"mango",cat:"sides",name:"Mango Slices",ic:"🥭",price:2.00},
  {id:"sside",cat:"sides",name:"Side Salad",ic:"🥬",price:3.99,parts:[{name:"cheese",ic:"🧀"},{name:"tomatoes",ic:"🍅"}]},
  {id:"chips",cat:"sides",name:"Chips",ic:"\ud83e\udd54",price:1.79,
   choices:[{name:"Which flavor?",opts:[{label:"Plain",ic:"\ud83e\udd54",d:0},{label:"BBQ",ic:"\ud83c\udf56",d:0},
@@ -764,6 +784,32 @@ var PART_PRESETS=[{name:"lettuce",ic:"🥬"},{name:"tomato",ic:"🍅"},{name:"on
  {name:"sour cream",ic:"🥛"},{name:"salsa",ic:"🥫"},
  {name:"guacamole",ic:"🥑"},{name:"hot sauce",ic:"🌶️"}];
 
+var Q_LIBRARY=[                        /* pick a question, options already filled in - M. Tembo - 9/6/26 */
+ {name:"Which flavor?",opts:[]},
+ {name:"Which kind?",opts:[]},
+ {name:"How many?",opts:[{label:"1",ic:"1\ufe0f\u20e3",d:0},{label:"2",ic:"2\ufe0f\u20e3",d:1.5},
+   {label:"3",ic:"3\ufe0f\u20e3",d:3}]},
+ {name:"Bun or no bun?",opts:[{label:"On a bun",ic:"\ud83c\udf5e",d:0},
+   {label:"No bun",ic:"\ud83c\udf5e",d:0,slash:true}]},
+ {name:"Which bread?",opts:[{label:"White bun",ic:"\ud83c\udf5e",d:0},{label:"Wheat bun",ic:"\ud83e\udd56",d:0},
+   {label:"Pretzel bun",ic:"\ud83e\udd68",d:.5},{label:"No bun",ic:"\ud83c\udf5e",d:0,slash:true}]},
+ {name:"Which wrap?",opts:[{label:"Flour tortilla",ic:"\ud83e\uded3",d:0},{label:"Corn tortilla",ic:"\ud83c\udf3d",d:0},
+   {label:"Lettuce wrap",ic:"\ud83e\udd6c",d:0}]},
+ {name:"How spicy?",opts:[{label:"Mild",ic:"\ud83e\uddc2",d:0},{label:"Medium",ic:"\ud83c\udf36\ufe0f",d:0},
+   {label:"Hot",ic:"\ud83d\udd25",d:0},{label:"Extra hot",ic:"\ud83e\udd75",d:0}]},
+ {name:"Which cheese?",opts:[{label:"American",ic:"\ud83e\uddc0",d:0},{label:"Provolone",ic:"\ud83e\uddc0",d:0},
+   {label:"Swiss",ic:"\ud83e\uddc0",d:0},{label:"Pepper jack",ic:"\ud83c\udf36\ufe0f",d:0},
+   {label:"No cheese",ic:"\ud83e\uddc0",d:0,slash:true}]},
+ {name:"Which dressing?",opts:[{label:"Ranch",ic:"art:sauce-ranch",d:0},{label:"Bleu cheese",ic:"art:sauce-bleu",d:0},
+   {label:"Honey mustard",ic:"art:sauce-honey",d:0},{label:"Vinaigrette",ic:"\ud83e\uded2",d:0},
+   {label:"No dressing",ic:"\ud83d\udeab",d:0}]},
+ {name:"Which meat?",opts:[{label:"Chicken",ic:"\ud83c\udf57",d:0},{label:"Steak",ic:"\ud83e\udd69",d:2.5},
+   {label:"Salmon",ic:"\ud83d\udc1f",d:3.5},{label:"No meat",ic:"\ud83e\udd6c",d:-1}]},
+ {name:"Ice?",opts:[{label:"Normal ice",ic:"\ud83e\uddca",d:0},{label:"Light ice",ic:"\u2744\ufe0f",d:0},
+   {label:"No ice",ic:"\ud83d\udeab",d:0}]},
+ {name:"Warm it up?",opts:[{label:"Warm",ic:"\ud83d\udd25",d:0},{label:"Room temp",ic:"\ud83c\udf6a",d:0}]},
+ {name:"Cut in half?",opts:[{label:"Cut it",ic:"\ud83d\udd2a",d:0},{label:"Leave it whole",ic:"\ud83c\udf7d\ufe0f",d:0}]}
+];
 var FLAVOR_PRESETS=[{label:"Strawberry",ic:"🍓"},{label:"Peach",ic:"🍑"},{label:"Apple",ic:"🍎"},{label:"Blue raspberry",ic:"🫐"},
  {label:"Mango",ic:"🥭"},{label:"Pineapple",ic:"🍍"},{label:"Watermelon",ic:"🍉"},{label:"Cherry",ic:"🍒"},{label:"Grape",ic:"🍇"},
  {label:"Banana",ic:"🍌"},{label:"Orange",ic:"🍊"},{label:"Lemon",ic:"🍋"},{label:"Chocolate",ic:"🍫"},{label:"Vanilla",ic:"🍨"},
@@ -911,9 +957,10 @@ var PLAIN_OPT={label:"Just this",ic:"\ud83c\udf7d\ufe0f",d:0,quiet:true};
 var MEAL_UPGRADES=[{label:"Meal",ic:"art:fries",d:2.99,isMeal:true},
   {label:"Large meal",ic:"\ud83c\udf89",d:3.79,isMeal:true}];
 var KID_UPGRADE={label:"Kids meal",ic:"\ud83e\uddf8",d:2,isKid:true};
-var FRUIT_SIDES=[{label:"Fruit cup",ic:"\ud83c\udf53",d:0,id:"fruit"},{label:"Apple slices",ic:"\ud83c\udf4e",d:0,id:"apples"},
+var FRUIT_SIDES=[{label:"Fruit cup",ic:"art:fruitcup",d:0,id:"fruit"},{label:"Apple slices",ic:"\ud83c\udf4e",d:0,id:"apples"},
   {label:"Orange slices",ic:"\ud83c\udf4a",d:0,id:"oranges"},{label:"Grapes",ic:"\ud83c\udf47",d:0,id:"grapes"},
-  {label:"Blueberries",ic:"\ud83e\uded0",d:0,id:"blue"},{label:"Strawberries",ic:"\ud83c\udf53",d:0,id:"strawb"}];
+  {label:"Blueberries",ic:"\ud83e\uded0",d:0,id:"blue"},{label:"Strawberries",ic:"\ud83c\udf53",d:0,id:"strawb"},
+  {label:"Mango slices",ic:"\ud83e\udd6d",d:0,id:"mango"}];
 var MEAL_SIDES=[{label:"Fries",ic:"art:fries-reg",d:0,id:"fries"}].concat(FRUIT_SIDES,
   [{label:"Mac and cheese",ic:"art:mac",d:.5,id:"mac"},
    {label:"Side salad",ic:"\ud83e\udd6c",d:.5,id:"sside"},{label:"Soup",ic:"\ud83c\udf72",d:.5,id:"soup"}]);
@@ -931,37 +978,61 @@ function dipOpts(){                                  /* sauces come from the men
 function optAt(g,picks){ var a=picks[g.key]; return (a&&a.length)?g.opts[a[0]]:null; }
 
 /* Groups carry a stable key so picks survive the menu rebuilding itself. */
-/* the saved question order, missing keys keep their natural spot - M. Tembo - 9/6/26 */
+/* Every question is sortable; sub-questions ride along with their parent. - M. Tembo - 9/6/26 */
 function orderFront(list,ord){
   if(!ord||!ord.length) return list;
   return list.slice().sort(function(a,b){
-    var ia=ord.indexOf(a.key), ib=ord.indexOf(b.key);
+    var ka=a.sortKey||a.key, kb=b.sortKey||b.key;
+    var ia=ord.indexOf(ka), ib=ord.indexOf(kb);
     if(ia===-1) ia=900+list.indexOf(a);
     if(ib===-1) ib=900+list.indexOf(b);
+    if(ia===ib) return list.indexOf(a)-list.indexOf(b);
     return ia-ib;
   });
 }
 function frontQuestions(it){
-  var r=[];
+  var r=[], hasParts=!!(it.parts&&it.parts.length), hasExtras=!!(it.extras&&it.extras.length);
+  function row(key,name,when,note){ r.push({key:key,name:name,when:when||"always",note:note||""}); }
   if(it.kidsmeal||it.meal||it.kidsok)
-    r.push({key:"meal",name:it.kidsmeal?"Kids meal, or just the food?":"How do they want it?"});
-  if(it.sizes) r.push({key:"size",name:"Pick a size"});
-  (it.choices||[]).forEach(function(c,i){ if(c.opts&&c.opts.length) r.push({key:"q"+i,name:c.name}); });
+    row("meal",it.kidsmeal?"Kids meal, or just the food?":"How do they want it?","always",
+        "built in, from the meal toggles above");
+  if(it.sizes) row("size","Pick a size","always","built in, from the sizes row above");
+  (it.choices||[]).forEach(function(c,i){
+    if(!c.opts||!c.opts.length) return;
+    var when="always";
+    if(c.needs&&(it.choices||[])[c.needs.q]) when="only if "+c.needs.label;
+    row("q"+i,c.name,when,"yours, edit it above");
+  });
+  if(hasParts) row("off","Take something off?","always","built from what's on it");
+  if(hasParts||hasExtras) row("add",hasParts?"Add something?":"What goes on it?","always",
+    "built from what's on it and the extras");
+  if(it.sauces||it.meal||it.kidsmeal||it.kidsok)
+    row("sauce","Dipping sauce",it.sauces?"always":"with a meal",
+      "built from every sauce in the Extras section");
+  if(it.meal){
+    row("mealside","Meal side","with a meal","built from the sides on the menu");
+    row("mealdrink","Meal drink","with a meal","built from the drinks on the menu");
+  }
+  if(it.kidsmeal||it.kidsok){
+    row("kidside","Kids meal side","kids meal","built from the sides on the menu");
+    row("kiddrink","Kids meal drink","kids meal","built from the drinks on the menu");
+    row("toy","Toy?","kids meal","built in");
+  }
   return orderFront(r,it.qorder);
 }
+
 function buildMods(item,picks){
   picks=picks||{};
-  var g=[], front=[], mealChosen=false, kidsOn=false;
-  function add(key,name,type,opts,short){
+  var list=[], mealChosen=false, kidsOn=false;
+  function add(key,name,type,opts,short,sortKey){
     if(!opts||!opts.length) return null;
-    var o={key:key,name:name,type:type,opts:opts}; if(short) o.short=short; g.push(o); return o;
-  }
-  function pre(key,name,type,opts){          /* goes in the reorderable first block */
-    if(!opts||!opts.length) return null;
-    var o={key:key,name:name,type:type,opts:opts}; front.push(o); return o;
+    if((item.hide||[]).indexOf(sortKey||key)!==-1) return null;   /* switched off - M. Tembo - 9/6/26 */
+    var o={key:key,name:name,type:type,opts:opts,sortKey:sortKey||key};
+    if(short) o.short=short;
+    list.push(o); return o;
   }
 
-  /* 1. how they want it comes first - M. Tembo - 9/6/26 */
+  /* 1. how they want it */
   var mealOpts=[];
   if(item.kidsmeal){
     mealOpts=[{label:"Kids meal",ic:"\ud83e\uddf8",d:0,isKid:true},
@@ -976,13 +1047,13 @@ function buildMods(item,picks){
     if(!msel){ var md=-1; mealOpts.forEach(function(o,i){ if(md===-1&&o.d===0) md=i; }); msel=mealOpts[md===-1?0:md]; }
     mealChosen=!!(msel&&msel.isMeal);
     kidsOn=!!(msel&&msel.isKid);
-    pre("meal",item.kidsmeal?"Kids meal, or just the food?":"How do they want it?","one",mealOpts);
+    add("meal",item.kidsmeal?"Kids meal, or just the food?":"How do they want it?","one",mealOpts);
   }
 
-  /* 2. the size and the item's own questions join the same block */
-  if(item.sizes) pre("size","Pick a size","one",sizeOpts(item.sizes));
+  /* 2. size, then the item's own questions */
+  if(item.sizes) add("size","Pick a size","one",sizeOpts(item.sizes));
   (item.choices||[]).forEach(function(c,i){
-    if(c.needs){                           /* a question can wait on an earlier answer */
+    if(c.needs){
       var parent=(item.choices||[])[c.needs.q], sel=null;
       if(parent){
         sel=optAt({key:"q"+c.needs.q,opts:parent.opts},picks);
@@ -991,40 +1062,10 @@ function buildMods(item,picks){
       }
       if(!sel||sel.label!==c.needs.label) return;
     }
-    pre("q"+i,c.name,"one",c.opts);
+    add("q"+i,c.name,"one",c.opts);
   });
-  orderFront(front,item.qorder).forEach(function(o){ g.push(o); });
 
-  /* 3. whatever the meal choice brings with it */
-  if(mealChosen){
-    var sg=add("mealside","Meal side","one",MEAL_SIDES,"Side");
-    var ssel=optAt(sg,picks)||MEAL_SIDES[0];
-    var sideItem=(ssel&&ssel.id)?findItem(ssel.id):null;
-    if(sideItem)(sideItem.choices||[]).forEach(function(c,i){
-      add("ms-"+sideItem.id+"-"+i,"Side: "+c.name,"one",c.opts,"Side"); });
-    var dg=add("mealdrink","Meal drink","one",MEAL_DRINKS,"Drink");
-    var dsel=optAt(dg,picks)||MEAL_DRINKS[0];
-    var drink=dsel&&dsel.id?findItem(dsel.id):null;
-    if(drink)(drink.choices||[]).forEach(function(c,i){
-      add("md-"+drink.id+"-"+i,"Drink: "+c.name,"one",c.opts,"Drink"); });
-  }
-  if(kidsOn){
-    var ksg=add("kidside","Pick a side","one",KID_SIDES,"Side");
-    var kssel=optAt(ksg,picks)||KID_SIDES[0];
-    var kSide=(kssel&&kssel.id)?findItem(kssel.id):null;
-    if(kSide)(kSide.choices||[]).forEach(function(c,i){
-      add("ks-"+kSide.id+"-"+i,"Side: "+c.name,"one",c.opts,"Side"); });
-    var kg=add("kiddrink","Pick a drink","one",KID_DRINKS,"Drink");
-    var ksel=optAt(kg,picks)||KID_DRINKS[0];
-    var kdrink=ksel&&ksel.id?findItem(ksel.id):null;
-    if(kdrink)(kdrink.choices||[]).forEach(function(c,i){
-      add("kd-"+kdrink.id+"-"+i,"Drink: "+c.name,"one",c.opts,"Drink"); });
-    add("toy","Toy?","one",[{label:"Yes, a toy!",ic:"\ud83e\ude80",d:0},{label:"No toy",ic:"\ud83d\udeab",d:0}],"Toy");
-  }
-  if(item.sauces || kidsOn || mealChosen)
-    add("sauce","Dipping sauce","many",dipOpts(),"Sauce");
-
-  /* 4. what comes off and what goes on */
+  /* 3. build the item itself before any meal extras */
   if(item.parts&&item.parts.length)
     add("off","Take something off?","many",item.parts.map(function(p){
       return {label:"No "+p.name,ic:p.ic,d:0,slash:true}; }));
@@ -1032,8 +1073,37 @@ function buildMods(item,picks){
   (item.parts||[]).forEach(function(p){ addl.push({label:"Extra "+p.name,ic:p.ic,d:0}); });
   (item.extras||[]).forEach(function(x){
     addl.push({label:plain?cap(x.name):"Add "+x.name,ic:x.ic,d:x.price||0}); });
-  add("add",(item.parts&&item.parts.length)?"Add something?":"What goes on it?","many",addl);
-  return g;
+  add("add",plain?"What goes on it?":"Add something?","many",addl);
+  if(item.sauces||kidsOn||mealChosen)
+    add("sauce","Dipping sauce","many",dipOpts(),"Sauce");
+
+  /* 4. then whatever the meal brings with it */
+  if(mealChosen){
+    var sg=add("mealside","Meal side","one",MEAL_SIDES,"Side");
+    var ssel=optAt(sg,picks)||MEAL_SIDES[0];
+    var sideItem=(ssel&&ssel.id)?findItem(ssel.id):null;
+    if(sideItem)(sideItem.choices||[]).forEach(function(c,i){
+      add("ms-"+sideItem.id+"-"+i,"Side: "+c.name,"one",c.opts,"Side","mealside"); });
+    var dg=add("mealdrink","Meal drink","one",MEAL_DRINKS,"Drink");
+    var dsel=optAt(dg,picks)||MEAL_DRINKS[0];
+    var drink=dsel&&dsel.id?findItem(dsel.id):null;
+    if(drink)(drink.choices||[]).forEach(function(c,i){
+      add("md-"+drink.id+"-"+i,"Drink: "+c.name,"one",c.opts,"Drink","mealdrink"); });
+  }
+  if(kidsOn){
+    var ksg=add("kidside","Pick a side","one",KID_SIDES,"Side");
+    var kssel=optAt(ksg,picks)||KID_SIDES[0];
+    var kSide=(kssel&&kssel.id)?findItem(kssel.id):null;
+    if(kSide)(kSide.choices||[]).forEach(function(c,i){
+      add("ks-"+kSide.id+"-"+i,"Side: "+c.name,"one",c.opts,"Side","kidside"); });
+    var kg=add("kiddrink","Pick a drink","one",KID_DRINKS,"Drink");
+    var ksel=optAt(kg,picks)||KID_DRINKS[0];
+    var kdrink=ksel&&ksel.id?findItem(ksel.id):null;
+    if(kdrink)(kdrink.choices||[]).forEach(function(c,i){
+      add("kd-"+kdrink.id+"-"+i,"Drink: "+c.name,"one",c.opts,"Drink","kiddrink"); });
+    add("toy","Toy?","one",[{label:"Yes, a toy!",ic:"\ud83e\ude80",d:0},{label:"No toy",ic:"\ud83d\udeab",d:0}],"Toy");
+  }
+  return orderFront(list,item.qorder);
 }
 
 /* Rebuild until no new group appears, filling in defaults as we go. */
@@ -1684,13 +1754,15 @@ var draft=null,draftIsNew=false,draftBaseId=null,duoMode=false;
 function openEditor(id){
   if(id){ draft=clone(findItem(id)); draftIsNew=false; draftBaseId=id; $("edTitle").textContent="Edit "+draft.name; }
   else{ draft={id:"c"+Date.now(),cat:state.cat,name:"",ic:"\ud83c\udf54",price:0,sizes:0,meal:false,kidsmeal:false,
-        kidsok:false,sauces:false,dip:false,also:[],qorder:null,parts:[],extras:[],choices:[],custom:true};
+        kidsok:false,sauces:false,dip:false,also:[],qorder:null,hide:[],
+        parts:[],extras:[],choices:[],custom:true};
         draftIsNew=true; draftBaseId=null;
         $("edTitle").textContent="Make a new food"; }
   if(!draft.parts) draft.parts=[];
   if(!draft.extras) draft.extras=[];
   if(!draft.choices) draft.choices=[];
   if(!draft.also) draft.also=[];
+  if(!draft.hide) draft.hide=[];
   duoMode=iconCount(draft.ic)>1;
   renderEditor(); $("editScrim").classList.add("on");
 }
@@ -1877,10 +1949,12 @@ function renderEditor(){
     box.appendChild(row);
     b.appendChild(box);
   });
+  b.appendChild(label("Add a ready-made question"));
   var addq=document.createElement("div"); addq.className="presets"; addq.style.marginBottom="14px";
-  ["Which flavor?","Which kind?","How many?","Anything else?"].forEach(function(nm){
-    var qb=document.createElement("button"); qb.className="preset"; qb.textContent="➕ "+nm;
-    qb.onclick=function(){ draft.choices.push({name:nm,opts:[]}); beep(990,.06); renderEditor(); };
+  Q_LIBRARY.forEach(function(tpl){
+    var qb=document.createElement("button"); qb.className="preset";
+    qb.textContent="➕ "+tpl.name+(tpl.opts.length?" ("+tpl.opts.length+")":" (blank)");
+    qb.onclick=function(){ draft.choices.push(clone(tpl)); beep(990,.06); renderEditor(); };
     addq.appendChild(qb);
   });
   b.appendChild(addq);
@@ -1894,16 +1968,38 @@ function renderEditor(){
       var t=keys[idx]; keys[idx]=keys[idx+dir]; keys[idx+dir]=t;
       draft.qorder=keys; beep(700,.05); renderEditor();
     };
+    draft.hide=draft.hide||[];
     fq.forEach(function(row,idx){
-      var r=document.createElement("div"); r.className="ordrow";
-      var n=document.createElement("span"); n.className="n"; n.textContent=(idx+1)+". "+row.name;
+      var hidden=draft.hide.indexOf(row.key)!==-1;
+      var r=document.createElement("div"); r.className="ordrow"+(hidden?" hid":"");
+      var n=document.createElement("span"); n.className="n";
+      n.innerHTML=(idx+1)+". "+row.name+(row.note?'<br><span style="font-size:11px;font-weight:500;opacity:.7">'+
+        row.note+'</span>':'');
+      var w=document.createElement("span");
+      w.className="w"+(/meal$/.test(row.when)||row.when==="with a meal"?" meal":"")+
+        (row.when==="kids meal"?" kid":"");
+      w.textContent=row.when;
+      var eye=document.createElement("button"); eye.className="eye";
+      eye.textContent=hidden?"\ud83d\udeab":"\ud83d\udc41";
+      eye.disabled=(row.key==="meal");
+      eye.onclick=function(){
+        var k=draft.hide.indexOf(row.key);
+        if(k===-1) draft.hide.push(row.key); else draft.hide.splice(k,1);
+        beep(hidden?900:400,.06); renderEditor();
+      };
       var up=document.createElement("button"); up.textContent="\u25b2"; up.disabled=(idx===0);
       up.onclick=function(){ moveQ(idx,-1); };
       var dn=document.createElement("button"); dn.textContent="\u25bc"; dn.disabled=(idx===fq.length-1);
       dn.onclick=function(){ moveQ(idx,1); };
-      r.appendChild(n); r.appendChild(up); r.appendChild(dn);
+      r.appendChild(n); r.appendChild(w); r.appendChild(eye); r.appendChild(up); r.appendChild(dn);
       b.appendChild(r);
     });
+    var hint=document.createElement("div"); hint.className="hintbox";
+    hint.innerHTML="\ud83d\udc41 shows the question, \ud83d\udeab switches it off for this food. "+
+      "The tag says when he gets asked: <b>always</b>, <b>with a meal</b>, or <b>kids meal</b>. "+
+      "Questions marked <i>built from</i> take their answers from the rest of the menu, so "+
+      "the dipping sauce list changes when you add a sauce in the Extras section.";
+    b.appendChild(hint);
     var reset=document.createElement("button"); reset.className="preset"; reset.style.marginBottom="13px";
     reset.textContent="\u267b\ufe0f Normal order";
     reset.onclick=function(){ draft.qorder=null; beep(500,.08); renderEditor(); };
@@ -1993,7 +2089,8 @@ function saveDraft(){
   }else{
     state.over[draftBaseId]={name:draft.name,ic:draft.ic,price:draft.price,cat:draft.cat,sizes:draft.sizes||0,
       meal:!!draft.meal,kidsmeal:!!draft.kidsmeal,kidsok:!!draft.kidsok,sauces:!!draft.sauces,dip:!!draft.dip,
-      also:draft.also||[],qorder:draft.qorder||null,parts:draft.parts,extras:draft.extras,choices:draft.choices};
+      also:draft.also||[],qorder:draft.qorder||null,hide:draft.hide||[],
+      parts:draft.parts,extras:draft.extras,choices:draft.choices};
   }
   saveMenu(); state.cat=draft.cat;
   $("editScrim").classList.remove("on"); beep(1320,.12); say(draft.name+" saved");
