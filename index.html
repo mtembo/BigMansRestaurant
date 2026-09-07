@@ -1793,7 +1793,7 @@ function listNames(a){ return a.map(function(x){ return x.name+(x.price?" +"+mon
 
 var MENU_DENSITY=store.get("ou_density","short");   /* fit it on fewer sheets - M. Tembo - 9/6/26 */
 function renderMenuSheet(){
-  var b=$("menuBody"); b.innerHTML=""; b.className="d-"+MENU_DENSITY;
+  var b=$("menuBody"); b.innerHTML=""; b.className="sheet-body d-"+MENU_DENSITY;  /* keep sheet-body or the footer gets pushed off - M. Tembo - 9/6/26 */
   var ctl=document.createElement("div"); ctl.className="noprint";
   [["full","Everything","2 columns"],["short","Short","3 columns"],["price","Just prices","3 columns"]]
    .forEach(function(o){
