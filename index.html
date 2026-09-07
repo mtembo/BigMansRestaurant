@@ -169,6 +169,11 @@ body.needmode #rail{opacity:.35;pointer-events:none}
 .qbox .qhead{display:flex;gap:6px;margin-bottom:7px}
 .qbox .qhead input{flex:1;font-size:16px;font-weight:800;padding:7px 9px;border:3px solid var(--line);border-radius:10px;background:var(--cream);min-width:0}
 .qbox .qhead button{background:var(--red);color:#fff;border-radius:10px;padding:7px 11px;font-size:15px}
+.ordrow{display:flex;align-items:center;gap:6px;background:var(--paper);border:3px solid var(--line);
+  border-radius:11px;padding:6px 8px;margin-bottom:6px;font-size:15px}
+.ordrow .n{flex:1;min-width:0;overflow-wrap:anywhere}
+.ordrow button{background:var(--sun);border-radius:9px;padding:6px 11px;font-size:15px;line-height:1}
+.ordrow button:disabled{opacity:.25}
 textarea#jsonBox{width:100%;height:210px;font-family:monospace;font-size:12px;padding:10px;border:3px solid var(--line);border-radius:12px;background:var(--paper);color:var(--ink)}
 
 .money-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
@@ -820,8 +825,10 @@ function sizeOpts(kind){
           {label:"Medium",ic:cup?"\ud83e\udd64":"\ud83c\udf7d\ufe0f",d:0},
           {label:"Large",ic:cup?"\ud83e\uddcb":"\ud83c\udf72",d:.7}];
 }
-var MEAL_OPTS=[{label:"Just this",ic:"\ud83c\udf7d\ufe0f",d:0,quiet:true},
-  {label:"Meal",ic:"art:fries",d:2.99,isMeal:true},{label:"Large meal",ic:"\ud83c\udf89",d:3.79,isMeal:true}];
+var PLAIN_OPT={label:"Just this",ic:"\ud83c\udf7d\ufe0f",d:0,quiet:true};
+var MEAL_UPGRADES=[{label:"Meal",ic:"art:fries",d:2.99,isMeal:true},
+  {label:"Large meal",ic:"\ud83c\udf89",d:3.79,isMeal:true}];
+var KID_UPGRADE={label:"Kids meal",ic:"\ud83e\uddf8",d:2,isKid:true};
 var FRUIT_SIDES=[{label:"Fruit cup",ic:"\ud83c\udf53",d:0,id:"fruit"},{label:"Apple slices",ic:"\ud83c\udf4e",d:0,id:"apples"},
   {label:"Orange slices",ic:"\ud83c\udf4a",d:0,id:"oranges"},{label:"Grapes",ic:"\ud83c\udf47",d:0,id:"grapes"},
   {label:"Blueberries",ic:"\ud83e\uded0",d:0,id:"blue"},{label:"Strawberries",ic:"\ud83c\udf53",d:0,id:"strawb"}];
@@ -842,52 +849,82 @@ function dipOpts(){                                  /* sauces come from the men
 function optAt(g,picks){ var a=picks[g.key]; return (a&&a.length)?g.opts[a[0]]:null; }
 
 /* Groups carry a stable key so picks survive the menu rebuilding itself. */
+/* the saved question order, missing keys keep their natural spot - M. Tembo - 9/6/26 */
+function orderFront(list,ord){
+  if(!ord||!ord.length) return list;
+  return list.slice().sort(function(a,b){
+    var ia=ord.indexOf(a.key), ib=ord.indexOf(b.key);
+    if(ia===-1) ia=900+list.indexOf(a);
+    if(ib===-1) ib=900+list.indexOf(b);
+    return ia-ib;
+  });
+}
+function frontQuestions(it){
+  var r=[];
+  if(it.kidsmeal||it.meal||it.kidsok)
+    r.push({key:"meal",name:it.kidsmeal?"Kids meal, or just the food?":"How do they want it?"});
+  if(it.sizes) r.push({key:"size",name:"Pick a size"});
+  (it.choices||[]).forEach(function(c,i){ if(c.opts&&c.opts.length) r.push({key:"q"+i,name:c.name}); });
+  return orderFront(r,it.qorder);
+}
 function buildMods(item,picks){
   picks=picks||{};
-  var g=[], mealChosen=false;
+  var g=[], front=[], mealChosen=false, kidsOn=false;
   function add(key,name,type,opts,short){
     if(!opts||!opts.length) return null;
     var o={key:key,name:name,type:type,opts:opts}; if(short) o.short=short; g.push(o); return o;
   }
-  if(item.sizes) add("size","Pick a size","one",sizeOpts(item.sizes));
-  var qseen={};                                    /* a question can wait on an earlier answer - M. Tembo - 9/6/26 */
+  function pre(key,name,type,opts){          /* goes in the reorderable first block */
+    if(!opts||!opts.length) return null;
+    var o={key:key,name:name,type:type,opts:opts}; front.push(o); return o;
+  }
+
+  /* 1. how they want it comes first - M. Tembo - 9/6/26 */
+  var mealOpts=[];
+  if(item.kidsmeal){
+    mealOpts=[{label:"Kids meal",ic:"\ud83e\uddf8",d:0,isKid:true},
+              {label:"Just the food",ic:"\ud83c\udf7d\ufe0f",d:-1.5}];
+  }else{
+    mealOpts=[PLAIN_OPT];
+    if(item.meal) mealOpts=mealOpts.concat(MEAL_UPGRADES);
+    if(item.kidsok) mealOpts=mealOpts.concat([KID_UPGRADE]);
+  }
+  if(mealOpts.length>1){
+    var msel=optAt({key:"meal",opts:mealOpts},picks);
+    if(!msel){ var md=-1; mealOpts.forEach(function(o,i){ if(md===-1&&o.d===0) md=i; }); msel=mealOpts[md===-1?0:md]; }
+    mealChosen=!!(msel&&msel.isMeal);
+    kidsOn=!!(msel&&msel.isKid);
+    pre("meal",item.kidsmeal?"Kids meal, or just the food?":"How do they want it?","one",mealOpts);
+  }
+
+  /* 2. the size and the item's own questions join the same block */
+  if(item.sizes) pre("size","Pick a size","one",sizeOpts(item.sizes));
   (item.choices||[]).forEach(function(c,i){
-    if(c.needs){
-      var pg=qseen["q"+c.needs.q], sel=pg?optAt(pg,picks):null;
+    if(c.needs){                           /* a question can wait on an earlier answer */
+      var parent=(item.choices||[])[c.needs.q], sel=null;
+      if(parent){
+        sel=optAt({key:"q"+c.needs.q,opts:parent.opts},picks);
+        if(!sel){ var dd=-1; parent.opts.forEach(function(o,k){ if(dd===-1&&o.d===0) dd=k; });
+          sel=parent.opts[dd===-1?0:dd]; }
+      }
       if(!sel||sel.label!==c.needs.label) return;
     }
-    qseen["q"+i]=add("q"+i,c.name,"one",c.opts);
+    pre("q"+i,c.name,"one",c.opts);
   });
+  orderFront(front,item.qorder).forEach(function(o){ g.push(o); });
 
-  var kidsOn=false;                       /* any entree can be a kids meal - M. Tembo - 9/6/26 */
-  if(item.kidsmeal||item.kidsok){
-    var kidOpts=item.kidsmeal
-      ? [{label:"Kids meal",ic:"\ud83e\uddf8",d:0},{label:"Just the food",ic:"\ud83c\udf7d\ufe0f",d:-1.5}]
-      : [{label:"Just the food",ic:"\ud83c\udf7d\ufe0f",d:0,quiet:true},{label:"Kids meal",ic:"\ud83e\uddf8",d:2}];
-    var ksel=optAt({key:"kidmeal",opts:kidOpts},picks);
-    if(!ksel){ var kd=-1; kidOpts.forEach(function(o,i){ if(kd===-1&&o.d===0) kd=i; }); ksel=kidOpts[kd===-1?0:kd]; }
-    kidsOn=!!(ksel&&ksel.label==="Kids meal");
-    add("kidmeal","Kids meal, or just the food?","one",kidOpts);
-  }
-  if(item.meal && !kidsOn){
-    var mg=add("meal","Make it a meal?","one",MEAL_OPTS);
-    var chose=optAt(mg,picks);
-    if(chose && chose.isMeal){
-      mealChosen=true;
-      var sg=add("mealside","Meal side","one",MEAL_SIDES,"Side");
-      var ssel=optAt(sg,picks)||MEAL_SIDES[0];
-      var sideItem=(ssel&&ssel.id)?findItem(ssel.id):null;
-      if(sideItem)(sideItem.choices||[]).forEach(function(c,i){
-        add("ms-"+sideItem.id+"-"+i,"Side: "+c.name,"one",c.opts,"Side"); });
-      var dg=add("mealdrink","Meal drink","one",MEAL_DRINKS,"Drink");
-      var dsel=optAt(dg,picks) || MEAL_DRINKS[0];
-      var drink=dsel&&dsel.id?findItem(dsel.id):null;
-      if(drink){                                     /* the drink's own flavors - M. Tembo - 9/6/26 */
-        (drink.choices||[]).forEach(function(c,i){
-          add("md-"+drink.id+"-"+i,"Drink: "+c.name,"one",c.opts,"Drink");
-        });
-      }
-    }
+  /* 3. whatever the meal choice brings with it */
+  if(mealChosen){
+    var sg=add("mealside","Meal side","one",MEAL_SIDES,"Side");
+    var ssel=optAt(sg,picks)||MEAL_SIDES[0];
+    var sideItem=(ssel&&ssel.id)?findItem(ssel.id):null;
+    if(sideItem)(sideItem.choices||[]).forEach(function(c,i){
+      add("ms-"+sideItem.id+"-"+i,"Side: "+c.name,"one",c.opts,"Side"); });
+    var dg=add("mealdrink","Meal drink","one",MEAL_DRINKS,"Drink");
+    var dsel=optAt(dg,picks)||MEAL_DRINKS[0];
+    var drink=dsel&&dsel.id?findItem(dsel.id):null;
+    if(drink)(drink.choices||[]).forEach(function(c,i){
+      add("md-"+drink.id+"-"+i,"Drink: "+c.name,"one",c.opts,"Drink"); });
   }
   if(kidsOn){
     var ksg=add("kidside","Pick a side","one",KID_SIDES,"Side");
@@ -898,20 +935,20 @@ function buildMods(item,picks){
     var kg=add("kiddrink","Pick a drink","one",KID_DRINKS,"Drink");
     var ksel=optAt(kg,picks)||KID_DRINKS[0];
     var kdrink=ksel&&ksel.id?findItem(ksel.id):null;
-    if(kdrink) (kdrink.choices||[]).forEach(function(c,i){
-      add("kd-"+kdrink.id+"-"+i,"Drink: "+c.name,"one",c.opts,"Drink");
-    });
+    if(kdrink)(kdrink.choices||[]).forEach(function(c,i){
+      add("kd-"+kdrink.id+"-"+i,"Drink: "+c.name,"one",c.opts,"Drink"); });
     add("toy","Toy?","one",[{label:"Yes, a toy!",ic:"\ud83e\ude80",d:0},{label:"No toy",ic:"\ud83d\udeab",d:0}],"Toy");
   }
-  if(item.sauces || kidsOn || mealChosen)   /* one sauce list, meal or not - M. Tembo - 9/6/26 */
+  if(item.sauces || kidsOn || mealChosen)
     add("sauce","Dipping sauce","many",dipOpts(),"Sauce");
 
+  /* 4. what comes off and what goes on */
   if(item.parts&&item.parts.length)
     add("off","Take something off?","many",item.parts.map(function(p){
       return {label:"No "+p.name,ic:p.ic,d:0,slash:true}; }));
   var addl=[], plain=!(item.parts&&item.parts.length);
   (item.parts||[]).forEach(function(p){ addl.push({label:"Extra "+p.name,ic:p.ic,d:0}); });
-  (item.extras||[]).forEach(function(x){                /* build-your-own reads better without "Add" */
+  (item.extras||[]).forEach(function(x){
     addl.push({label:plain?cap(x.name):"Add "+x.name,ic:x.ic,d:x.price||0}); });
   add("add",(item.parts&&item.parts.length)?"Add something?":"What goes on it?","many",addl);
   return g;
@@ -1030,8 +1067,8 @@ function tapItem(m){
   say(m.name); beep(880,.07);
   var picks={}, mods=syncMods(m,picks);
   if(m.viewCat==="kids"){                 /* tapped from the Kids section - M. Tembo - 9/6/26 */
-    mods.forEach(function(gr){ if(gr.key==="kidmeal")
-      gr.opts.forEach(function(o,i){ if(o.label==="Kids meal") picks.kidmeal=[i]; }); });
+    mods.forEach(function(gr){ if(gr.key==="meal")
+      gr.opts.forEach(function(o,i){ if(o.isKid) picks.meal=[i]; }); });
     mods=syncMods(m,picks);
   }
   if(!mods.length){ addLine(m,[],picks); return; }
@@ -1565,7 +1602,7 @@ var draft=null,draftIsNew=false,draftBaseId=null,duoMode=false;
 function openEditor(id){
   if(id){ draft=clone(findItem(id)); draftIsNew=false; draftBaseId=id; $("edTitle").textContent="Edit "+draft.name; }
   else{ draft={id:"c"+Date.now(),cat:state.cat,name:"",ic:"\ud83c\udf54",price:0,sizes:0,meal:false,kidsmeal:false,
-        kidsok:false,sauces:false,dip:false,also:[],parts:[],extras:[],choices:[],custom:true};
+        kidsok:false,sauces:false,dip:false,also:[],qorder:null,parts:[],extras:[],choices:[],custom:true};
         draftIsNew=true; draftBaseId=null;
         $("edTitle").textContent="Make a new food"; }
   if(!draft.parts) draft.parts=[];
@@ -1707,7 +1744,19 @@ function renderEditor(){
     var qn=document.createElement("input"); qn.value=q.name; qn.placeholder="Which flavor?";
     qn.oninput=function(){ q.name=qn.value; };
     var qd=document.createElement("button"); qd.textContent="🗑";
-    qd.onclick=function(){ draft.choices.splice(qi,1); beep(300,.08); renderEditor(); };
+    qd.onclick=function(){
+      if(draft.qorder){
+        var out=[];
+        draft.qorder.forEach(function(k){
+          if(k.charAt(0)!=="q"){ out.push(k); return; }
+          var n=parseInt(k.slice(1),10);
+          if(n===qi) return;
+          out.push("q"+(n>qi?n-1:n));
+        });
+        draft.qorder=out;
+      }
+      draft.choices.splice(qi,1); beep(300,.08); renderEditor();
+    };
     head.appendChild(qn); head.appendChild(qd); box.appendChild(head);
 
     var chips=document.createElement("div"); chips.className="chips";
@@ -1753,6 +1802,31 @@ function renderEditor(){
     addq.appendChild(qb);
   });
   b.appendChild(addq);
+
+  /* ---- question order ---- */
+  var fq=frontQuestions(draft);
+  if(fq.length>1){
+    b.appendChild(label("What order to ask them in"));
+    var moveQ=function(idx,dir){
+      var keys=fq.map(function(x){ return x.key; });
+      var t=keys[idx]; keys[idx]=keys[idx+dir]; keys[idx+dir]=t;
+      draft.qorder=keys; beep(700,.05); renderEditor();
+    };
+    fq.forEach(function(row,idx){
+      var r=document.createElement("div"); r.className="ordrow";
+      var n=document.createElement("span"); n.className="n"; n.textContent=(idx+1)+". "+row.name;
+      var up=document.createElement("button"); up.textContent="\u25b2"; up.disabled=(idx===0);
+      up.onclick=function(){ moveQ(idx,-1); };
+      var dn=document.createElement("button"); dn.textContent="\u25bc"; dn.disabled=(idx===fq.length-1);
+      dn.onclick=function(){ moveQ(idx,1); };
+      r.appendChild(n); r.appendChild(up); r.appendChild(dn);
+      b.appendChild(r);
+    });
+    var reset=document.createElement("button"); reset.className="preset"; reset.style.marginBottom="13px";
+    reset.textContent="\u267b\ufe0f Normal order";
+    reset.onclick=function(){ draft.qorder=null; beep(500,.08); renderEditor(); };
+    b.appendChild(reset);
+  }
 
   /* ---- components ---- */
   b.appendChild(label("What's on it? (each gets a 'no' and an 'extra')"));
@@ -1837,7 +1911,7 @@ function saveDraft(){
   }else{
     state.over[draftBaseId]={name:draft.name,ic:draft.ic,price:draft.price,cat:draft.cat,sizes:draft.sizes||0,
       meal:!!draft.meal,kidsmeal:!!draft.kidsmeal,kidsok:!!draft.kidsok,sauces:!!draft.sauces,dip:!!draft.dip,
-      also:draft.also||[],parts:draft.parts,extras:draft.extras,choices:draft.choices};
+      also:draft.also||[],qorder:draft.qorder||null,parts:draft.parts,extras:draft.extras,choices:draft.choices};
   }
   saveMenu(); state.cat=draft.cat;
   $("editScrim").classList.remove("on"); beep(1320,.12); say(draft.name+" saved");
