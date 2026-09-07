@@ -93,16 +93,17 @@ body.needmode #rail{opacity:.35;pointer-events:none}
 #lines{flex:1;overflow:auto;padding:6px 10px}
 .empty{text-align:center;color:#A5947A;font-size:14px;font-weight:500;padding:24px 12px}
 .empty .big{font-size:40px;display:block;margin-bottom:6px}
-.line{display:grid;grid-template-columns:34px 1fr auto;gap:6px;align-items:start;padding:7px 0;border-bottom:1px dotted var(--line)}
+.line{display:block;padding:7px 0;border-bottom:1px dotted var(--line)}   /* M. Tembo - 9/6/26 */
 .line .lic{font-size:26px;line-height:1.2}
-.line .lname{font-size:15px;line-height:1.15}
-.line .lmods{font-size:12px;font-weight:500;color:#8A7A63;line-height:1.35}
-.line .lprice{font-size:15px;text-align:right}
-.lineTop{display:grid;grid-template-columns:34px 1fr auto;gap:6px;align-items:start;width:100%;
+.line .lname{font-size:15px;line-height:1.15;overflow-wrap:anywhere}
+.line .lmods{font-size:12px;font-weight:500;color:#8A7A63;line-height:1.35;overflow-wrap:anywhere}
+.line .lprice{font-size:15px;text-align:right;white-space:nowrap}
+.lineTop{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:6px;align-items:start;width:100%;
   background:transparent;text-align:left;padding:2px;border-radius:10px}
+.lineTop>div:nth-child(2){min-width:0}
 .lineTop:active{background:var(--cream)}
-.ledit{display:block;font-size:12px;opacity:.5;margin-top:2px}
-.qty{grid-column:2/4;display:flex;gap:6px;align-items:center;margin-top:4px}
+.ledit{display:block;font-size:11px;opacity:.5;margin-top:2px;white-space:nowrap}
+.qty{display:flex;gap:6px;align-items:center;margin-top:5px;padding-left:40px}
 .qbtn{width:34px;height:34px;border-radius:10px;background:var(--cream);border:2px solid var(--line);font-size:17px}
 .qnum{font-size:16px;min-width:22px;text-align:center}
 .totals{padding:8px 12px;border-top:2px dashed var(--line);font-size:14px}
@@ -819,7 +820,7 @@ function sizeOpts(kind){
           {label:"Medium",ic:cup?"\ud83e\udd64":"\ud83c\udf7d\ufe0f",d:0},
           {label:"Large",ic:cup?"\ud83e\uddcb":"\ud83c\udf72",d:.7}];
 }
-var MEAL_OPTS=[{label:"Just this",ic:"\ud83c\udf7d\ufe0f",d:0},
+var MEAL_OPTS=[{label:"Just this",ic:"\ud83c\udf7d\ufe0f",d:0,quiet:true},
   {label:"Meal",ic:"art:fries",d:2.99,isMeal:true},{label:"Large meal",ic:"\ud83c\udf89",d:3.79,isMeal:true}];
 var FRUIT_SIDES=[{label:"Fruit cup",ic:"\ud83c\udf53",d:0,id:"fruit"},{label:"Apple slices",ic:"\ud83c\udf4e",d:0,id:"apples"},
   {label:"Orange slices",ic:"\ud83c\udf4a",d:0,id:"oranges"},{label:"Grapes",ic:"\ud83c\udf47",d:0,id:"grapes"},
@@ -862,7 +863,7 @@ function buildMods(item,picks){
   if(item.kidsmeal||item.kidsok){
     var kidOpts=item.kidsmeal
       ? [{label:"Kids meal",ic:"\ud83e\uddf8",d:0},{label:"Just the food",ic:"\ud83c\udf7d\ufe0f",d:-1.5}]
-      : [{label:"Just the food",ic:"\ud83c\udf7d\ufe0f",d:0},{label:"Kids meal",ic:"\ud83e\uddf8",d:2}];
+      : [{label:"Just the food",ic:"\ud83c\udf7d\ufe0f",d:0,quiet:true},{label:"Kids meal",ic:"\ud83e\uddf8",d:2}];
     var ksel=optAt({key:"kidmeal",opts:kidOpts},picks);
     if(!ksel){ var kd=-1; kidOpts.forEach(function(o,i){ if(kd===-1&&o.d===0) kd=i; }); ksel=kidOpts[kd===-1?0:kd]; }
     kidsOn=!!(ksel&&ksel.label==="Kids meal");
@@ -938,7 +939,7 @@ function chosenFrom(mods,picks){
   var out=[];
   mods.forEach(function(gr){
     (picks[gr.key]||[]).forEach(function(i){
-      var o=gr.opts[i]; if(!o||o.label==="Just this") return;
+      var o=gr.opts[i]; if(!o||o.quiet) return;
       out.push({label:o.label,ic:o.ic,d:o.d,slash:!!o.slash,grp:gr.name,pre:gr.short||""});
     });
   });
