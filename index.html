@@ -81,6 +81,11 @@ body.editing #editbar{display:flex}
 .tile .pencil{position:absolute;top:-9px;right:-9px;width:31px;height:31px;border-radius:50%;background:var(--sun);
   border:3px solid var(--cream);font-size:14px;display:none;align-items:center;justify-content:center}
 body.editing .tile .pencil{display:flex}
+.tile .mv{position:absolute;bottom:-9px;width:30px;height:30px;border-radius:50%;background:var(--slate-2);
+  color:#fff;border:3px solid var(--cream);font-size:12px;display:none;align-items:center;justify-content:center}
+.tile .mv.l{left:-9px}
+.tile .mv.r{right:-9px}
+body.editing .tile .mv{display:flex}
 .tile.add{background:var(--sun);border-color:#E0A81F;border-style:dashed}
 .startmsg{grid-column:1/-1;background:var(--sun);border:3px solid #E0A81F;border-radius:16px;
   padding:14px 16px;font-size:17px;line-height:1.45;text-align:center}
@@ -321,7 +326,7 @@ table.pmatrix input{width:74px;font-size:16px;font-weight:800;padding:6px 8px;bo
     <nav id="rail"></nav>
     <section id="board">
       <div id="editbar">
-        <span class="note">✏️ Editing. Tap any food to change it.</span>
+        <span class="note">✏️ Editing. Tap a food to change it, or the ◀ ▶ corners to move it.</span>
         <button id="exportBtn">📤 Export</button>
         <button id="importBtn">📥 Import</button>
         <button id="resetAllBtn">♻️ Reset all</button>
@@ -838,24 +843,50 @@ var state={cat:"entrees",order:[],mode:null,
  orderNum:sess.get("ou_num",1), stars:sess.get("ou_stars",0),
  history:sess.get("ou_hist",[]),
  talk:store.get("ou_talk",true), customer:false, editing:false,
- custom:store.get("ou_custom",[]), over:store.get("ou_over",{}), hidden:store.get("ou_hidden",{})};
+ custom:store.get("ou_custom",[]), over:store.get("ou_over",{}), hidden:store.get("ou_hidden",{}),
+ arrange:store.get("ou_arrange",{})};
 state.custom.forEach(function(c){ if(c.cat==="chicken") c.cat="entrees"; });
 
 var BAKED=null;/*BAKE*/
 var MENU_REV=5;                       /* full reset requested - M. Tembo - 9/6/26 */
 if(store.get("ou_rev",0)<MENU_REV){
-  state.custom=[]; state.over={}; state.hidden={};
+  state.custom=[]; state.over={}; state.hidden={}; state.arrange={};
   store.set("ou_rev",MENU_REV);
-  store.set("ou_custom",[]); store.set("ou_over",{}); store.set("ou_hidden",{});
+  store.set("ou_custom",[]); store.set("ou_over",{}); store.set("ou_hidden",{}); store.set("ou_arrange",{});
 }
 if(BAKED && store.get("ou_stamp",0)!==BAKED.stamp){   /* file exported with edits inside - M. Tembo - 9/6/26 */
   state.custom=BAKED.custom||[]; state.over=BAKED.over||{}; state.hidden=BAKED.hidden||{};
+  state.arrange=BAKED.arrange||{};
   if(BAKED.pricing) SECTION_PRICE=BAKED.pricing;
   store.set("ou_stamp",BAKED.stamp); store.set("ou_custom",state.custom);
   store.set("ou_over",state.over); store.set("ou_hidden",state.hidden);
-  store.set("ou_pricing",SECTION_PRICE);
+  store.set("ou_arrange",state.arrange); store.set("ou_pricing",SECTION_PRICE);
 }
-function saveMenu(){ store.set("ou_custom",state.custom); store.set("ou_over",state.over); store.set("ou_hidden",state.hidden); }
+function saveMenu(){ store.set("ou_custom",state.custom); store.set("ou_over",state.over);
+  store.set("ou_hidden",state.hidden); store.set("ou_arrange",state.arrange); }
+/* the order the tiles sit in, per section - M. Tembo - 9/6/26 */
+function inSection(cat){
+  return getMenu().filter(function(m){ return m.cat===cat||(m.also||[]).indexOf(cat)!==-1; });
+}
+function sortByArrange(list,cat){
+  var ord=(state.arrange||{})[cat]||[];
+  if(!ord.length) return list;
+  return list.slice().sort(function(a,b){
+    var ia=ord.indexOf(a.id), ib=ord.indexOf(b.id);
+    if(ia===-1) ia=900+list.indexOf(a);
+    if(ib===-1) ib=900+list.indexOf(b);
+    if(ia===ib) return list.indexOf(a)-list.indexOf(b);
+    return ia-ib;
+  });
+}
+function moveItem(cat,id,dir){
+  var ids=sortByArrange(inSection(cat),cat).map(function(m){ return m.id; });
+  var i=ids.indexOf(id), j=i+dir;
+  if(i<0||j<0||j>=ids.length) return;
+  ids[i]=ids[j]; ids[j]=id;
+  state.arrange=state.arrange||{}; state.arrange[cat]=ids;
+  saveMenu(); beep(760,.05); renderGrid();
+}
 function saveSession(){ sess.set("ou_num",state.orderNum); sess.set("ou_stars",state.stars); sess.set("ou_hist",state.history); }
 
 function getMenu(){
@@ -1167,9 +1198,8 @@ function renderGrid(){
     });
     return;
   }
-  getMenu().filter(function(m){
-    return m.cat===state.cat || (m.also||[]).indexOf(state.cat)!==-1;
-  }).forEach(function(base){
+  var section=sortByArrange(inSection(state.cat),state.cat);
+  section.forEach(function(base,pos){
     var m=tileItem(base,state.cat);
     /* a kids tile shows the meal price, since that is what opens - M. Tembo - 9/6/26 */
     var shown=m.price+((state.cat==="kids"&&m.kidsok&&m.price)?2:0);
@@ -1180,6 +1210,15 @@ function renderGrid(){
       '<span class="nm">'+m.name+'</span><span class="pr">'+(shown===0?"FREE":money(shown))+'</span>'+
       '<span class="pencil">\u270f\ufe0f</span>';
     t.onclick=function(){ state.editing?openEditor(base.id):tapItem(m); };
+    if(state.editing){
+      var L=document.createElement("span"); L.className="mv l"; L.textContent="\u25c0";
+      L.onclick=function(e){ e.stopPropagation(); if(pos>0) moveItem(state.cat,base.id,-1); };
+      var R=document.createElement("span"); R.className="mv r"; R.textContent="\u25b6";
+      R.onclick=function(e){ e.stopPropagation(); if(pos<section.length-1) moveItem(state.cat,base.id,1); };
+      if(pos===0) L.style.opacity=".25";
+      if(pos===section.length-1) R.style.opacity=".25";
+      t.appendChild(L); t.appendChild(R);
+    }
     g.appendChild(t);
   });
   var add=document.createElement("button"); add.className="tile add";
@@ -1688,7 +1727,7 @@ function renderMenuSheet(){
   b.appendChild(head);
   var all=getMenu();
   CATS.forEach(function(c){
-    var items=all.filter(function(m){ return m.cat===c.id; });   /* primary section only */
+    var items=sortByArrange(all.filter(function(m){ return m.cat===c.id; }),c.id);  /* same order as the tiles */
     if(!items.length) return;
     var h=document.createElement("h3"); h.className="mcat"; h.innerHTML=c.ic+" "+c.name; b.appendChild(h);
     items.forEach(function(m){
@@ -2098,7 +2137,8 @@ function saveDraft(){
 }
 
 /* ================= export / import ================= */
-function bundle(){ return {version:4,custom:state.custom,over:state.over,hidden:state.hidden,pricing:SECTION_PRICE}; }
+function bundle(){ return {version:5,custom:state.custom,over:state.over,hidden:state.hidden,
+  arrange:state.arrange,pricing:SECTION_PRICE}; }
 function saveBlob(text,type,filename){
   try{
     var blob=new Blob([text],{type:type});
@@ -2113,7 +2153,7 @@ function exportWholeFile(btn){
   btn.textContent="⏳ Building...";
   fetch(location.href,{cache:"no-store"}).then(function(r){ return r.text(); }).then(function(src){
     var payload=JSON.stringify({stamp:Date.now(),custom:state.custom,over:state.over,
-      hidden:state.hidden,pricing:SECTION_PRICE}).replace(/</g,"\\u003c");
+      hidden:state.hidden,arrange:state.arrange,pricing:SECTION_PRICE}).replace(/</g,"\\u003c");
     var marker="var BAKED=null;/*BAKE*/";
     if(src.indexOf(marker)===-1) throw new Error("marker missing");
     var out=src.replace(marker,"var BAKED="+payload+";/*BAKE*/");
@@ -2151,6 +2191,7 @@ $("importBtn").onclick=function(){
   go.onclick=function(){ try{
     var d=JSON.parse($("jsonBox").value);
     state.custom=d.custom||[]; state.over=d.over||{}; state.hidden=d.hidden||{};
+    state.arrange=d.arrange||{};
     if(d.pricing){ SECTION_PRICE=d.pricing; store.set("ou_pricing",SECTION_PRICE); }
     saveMenu(); $("jsonScrim").classList.remove("on"); renderRail(); renderGrid(); beep(1320,.14); say("Menu loaded");
   }catch(e){ alert("That is not a valid menu file."); } };
@@ -2159,7 +2200,8 @@ $("importBtn").onclick=function(){
 $("jsonX").onclick=function(){ $("jsonScrim").classList.remove("on"); };
 $("resetAllBtn").onclick=function(){
   if(!confirm("Put the whole menu back to the way it started?")) return;
-  state.custom=[]; state.over={}; state.hidden={}; saveMenu(); renderRail(); renderGrid(); beep(400,.2);
+  state.custom=[]; state.over={}; state.hidden={}; state.arrange={};
+  saveMenu(); renderRail(); renderGrid(); beep(400,.2);
 };
 
 /* ================= toggles ================= */
