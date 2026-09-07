@@ -329,6 +329,7 @@ table.pmatrix input{width:74px;font-size:16px;font-weight:800;padding:6px 8px;bo
         <span class="note">✏️ Editing. Tap a food to change it, or the ◀ ▶ corners to move it.</span>
         <button id="exportBtn">📤 Export</button>
         <button id="importBtn">📥 Import</button>
+        <button id="undoBtn">↩️ Undo last change</button>
         <button id="resetAllBtn">♻️ Reset all</button>
       </div>
       <div id="customer"></div>
@@ -616,9 +617,25 @@ var MODES=[{id:"here",label:"For here",ic:"🍽️"},{id:"togo",label:"To go",ic
 function modeInfo(id){ var m=MODES[0]; MODES.forEach(function(x){ if(x.id===id) m=x; }); return m; }
 
 var BREAD_Q={name:"Bun or no bun?",opts:[     /* every sandwich can skip the bread - M. Tembo - 9/6/26 */
-  {label:"On a bun",ic:"\ud83c\udf5e",d:0},{label:"No bun",ic:"\ud83c\udf5e",d:0,slash:true}]};
+  {label:"On a bun",ic:"\ud83c\udf5e",d:0},{label:"Lettuce wrap",ic:"\ud83e\udd6c",d:0},
+  {label:"No bun",ic:"\ud83c\udf5e",d:0,slash:true}]};
 var DOG_BREAD_Q={name:"Bun or no bun?",opts:[
-  {label:"On a bun",ic:"\ud83c\udf2d",d:0},{label:"No bun",ic:"\ud83c\udf2d",d:0,slash:true}]};
+  {label:"On a bun",ic:"\ud83c\udf2d",d:0},{label:"Lettuce wrap",ic:"\ud83e\udd6c",d:0},
+  {label:"No bun",ic:"\ud83c\udf2d",d:0,slash:true}]};
+
+/* ---- pizza toppings - M. Tembo - 9/6/26 ---- */
+var TOP_MEAT=[{name:"beef pepperoni",ic:"\ud83c\udf55",price:1.5},{name:"beef bacon",ic:"\ud83e\udd53",price:1.5},
+ {name:"beef sausage",ic:"\ud83c\udf2d",price:1.5},{name:"steak",ic:"\ud83e\udd69",price:1.75},
+ {name:"grilled chicken",ic:"\ud83c\udf57",price:1.5}];
+var TOP_VEG=[{name:"onions",ic:"\ud83e\uddc5",price:.75},{name:"green peppers",ic:"\ud83e\uded1",price:.75},
+ {name:"mushrooms",ic:"\ud83c\udf44",price:.75},{name:"black olives",ic:"\ud83e\uded2",price:.75},
+ {name:"pineapple",ic:"\ud83c\udf4d",price:.75},{name:"tomatoes",ic:"\ud83c\udf45",price:.75},
+ {name:"jalapenos",ic:"\ud83c\udf36\ufe0f",price:.75},{name:"spinach",ic:"\ud83e\udd6c",price:.75}];
+var TOP_CHEESE=[{name:"provolone",ic:"\ud83e\uddc0",price:1},{name:"parmesan",ic:"\ud83e\uddc0",price:1}];
+var PIZZA_SIZE={name:"What size?",opts:[{label:"Personal",ic:"\ud83c\udf55",d:0},
+ {label:"Medium",ic:"\ud83c\udf7d\ufe0f",d:4},{label:"Large",ic:"\ud83c\udf89",d:7}]};
+function tops(skip){ return TOP_MEAT.concat(TOP_VEG,TOP_CHEESE).filter(function(t){
+  return (skip||[]).indexOf(t.name)===-1; }); }
 
 /* ================= base menu ================= */
 var MENU=[
@@ -650,7 +667,7 @@ var MENU=[
   choices:[DOG_BREAD_Q],
   extras:[{name:"ketchup",ic:"\ud83c\udf45",price:0},{name:"mustard",ic:"\ud83c\udf2d",price:0},
           {name:"relish",ic:"\ud83e\udd52",price:0},{name:"onions",ic:"\ud83e\uddc5",price:0},
-          {name:"sauerkraut",ic:"\ud83e\udd6c",price:0},{name:"jalapenos",ic:"\ud83c\udf36\ufe0f",price:0},
+          {name:"sauerkraut",ic:"\ud83e\udd6c",price:0},{name:"coleslaw",ic:"\ud83e\udd63",price:0},{name:"jalapenos",ic:"\ud83c\udf36\ufe0f",price:0},
           {name:"shredded cheese",ic:"\ud83e\uddc0",price:.5},{name:"chili",ic:"\ud83c\udf72",price:1}]},
  {id:"wings",cat:"entrees",kidsok:true,also:["kids"],name:"Chicken Wings",ic:"art:wings",price:6.99,meal:true,
   choices:[{name:"How many?",opts:[{label:"3 wings",ic:"3️⃣",d:-2},{label:"5 wings",ic:"5️⃣",d:0},{label:"7 wings",ic:"7️⃣",d:2.5},{label:"10 wings",ic:"🔟",d:5},
@@ -689,6 +706,18 @@ var MENU=[
            {name:"Which dressing?",opts:[{label:"Ranch",ic:"art:sauce-ranch",d:0},{label:"Bleu cheese",ic:"art:sauce-bleu",d:0},{label:"Honey mustard",ic:"🍯",d:0},{label:"Vinaigrette",ic:"🫒",d:0},{label:"No dressing",ic:"🚫",d:0}]}]},
  {id:"soup",cat:"entrees",kidsok:true,also:["kids","sides"],name:"Chicken Soup",ic:"🍲",price:3.79,sizes:"food",meal:true},
 
+ {id:"pizzac",cat:"entrees",kidsok:true,also:["kids"],name:"Cheese Pizza",ic:"art:pizza-cheese",price:8.99,
+  choices:[PIZZA_SIZE],parts:[{name:"sauce",ic:"\ud83e\udd6b"},{name:"mozzarella",ic:"\ud83e\uddc0"}],
+  extras:tops()},
+ {id:"pizzap",cat:"entrees",kidsok:true,also:["kids"],name:"Pepperoni Pizza",ic:"art:pizza-pepperoni",price:9.99,
+  choices:[PIZZA_SIZE],parts:[{name:"sauce",ic:"\ud83e\udd6b"},{name:"mozzarella",ic:"\ud83e\uddc0"},
+  {name:"beef pepperoni",ic:"\ud83c\udf55"}],extras:tops(["beef pepperoni"])},
+ {id:"pizzav",cat:"entrees",kidsok:true,also:["kids"],name:"Vegetable Pizza",ic:"art:pizza-veggie",price:10.49,
+  choices:[PIZZA_SIZE],parts:[{name:"sauce",ic:"\ud83e\udd6b"},{name:"mozzarella",ic:"\ud83e\uddc0"},
+  {name:"onions",ic:"\ud83e\uddc5"},{name:"green peppers",ic:"\ud83e\uded1"},{name:"mushrooms",ic:"\ud83c\udf44"},
+  {name:"black olives",ic:"\ud83e\uded2"},{name:"tomatoes",ic:"\ud83c\udf45"}],
+  extras:tops(["onions","green peppers","mushrooms","black olives","tomatoes"])},
+
  {id:"taco",cat:"entrees",kidsok:true,also:["kids"],name:"Taco",ic:"🌮",price:3.49,meal:true,   /* M. Tembo - 9/6/26 */
   choices:[{name:"Beef or chicken?",opts:[{label:"Beef",ic:"🥩",d:0},{label:"Chicken",ic:"🍗",d:0}]},
            {name:"Which shell?",opts:[{label:"Hard shell",ic:"🌮",d:0},{label:"Soft shell",ic:"🫓",d:0}]},
@@ -702,20 +731,22 @@ var MENU=[
  {id:"fries",cat:"sides",name:"Fries",ic:"art:fries-reg",price:2.69,sizes:"food",sauces:true,
   choices:[{name:"Which fries?",opts:[{label:"Regular",ic:"art:fries-reg",d:0},
             {label:"Waffle",ic:"art:fries",d:0},{label:"Sweet potato",ic:"art:fries-sweet",d:.5}]}],
-  parts:[{name:"salt",ic:"🧂"}],extras:[{name:"cheese sauce",ic:"🧀",price:.8},{name:"extra crispy",ic:"🔥",price:0}]},
+  parts:[{name:"salt",ic:"\ud83e\uddc2"}],extras:[{name:"cheese sauce",ic:"\ud83e\uddc0",price:.8},
+  {name:"extra crispy",ic:"\ud83d\udd25",price:0}]},
  {id:"mac",cat:"sides",also:["entrees"],name:"Mac & Cheese",ic:"art:mac",price:3.49,sizes:"food"},
- {id:"fruit",cat:"sides",name:"Fruit Cup",ic:"art:fruitcup",price:3.49,
-  parts:[{name:"apples",ic:"🍎"},{name:"oranges",ic:"🍊"},{name:"grapes",ic:"🍇"},
-         {name:"blueberries",ic:"🫐"},{name:"strawberries",ic:"🍓"}]},
- {id:"apples",cat:"sides",name:"Apple Slices",ic:"🍎",price:2.00},
- {id:"oranges",cat:"sides",name:"Orange Slices",ic:"🍊",price:2.00},
- {id:"strawb",cat:"sides",name:"Strawberries",ic:"🍓",price:2.00},
- {id:"mango",cat:"sides",name:"Mango Slices",ic:"🥭",price:2.00},
- {id:"sside",cat:"sides",name:"Side Salad",ic:"🥬",price:3.99,parts:[{name:"cheese",ic:"🧀"},{name:"tomatoes",ic:"🍅"}]},
  {id:"chips",cat:"sides",name:"Chips",ic:"\ud83e\udd54",price:1.79,
   choices:[{name:"Which flavor?",opts:[{label:"Plain",ic:"\ud83e\udd54",d:0},{label:"BBQ",ic:"\ud83c\udf56",d:0},
             {label:"Jalapeno",ic:"\ud83c\udf36\ufe0f",d:0}]}]},
+ {id:"sside",cat:"sides",name:"Side Salad",ic:"\ud83e\udd6c",price:3.99,
+  parts:[{name:"cheese",ic:"\ud83e\uddc0"},{name:"tomatoes",ic:"\ud83c\udf45"}]},
  {id:"melon",cat:"sides",name:"Watermelon Slice",ic:"\ud83c\udf49",price:2.50},
+ {id:"fruit",cat:"sides",name:"Fruit Cup",ic:"art:fruitcup",price:3.49,
+  parts:[{name:"apples",ic:"\ud83c\udf4e"},{name:"oranges",ic:"\ud83c\udf4a"},{name:"grapes",ic:"\ud83c\udf47"},
+         {name:"blueberries",ic:"\ud83e\uded0"},{name:"strawberries",ic:"\ud83c\udf53"}]},
+ {id:"apples",cat:"sides",name:"Apple Slices",ic:"\ud83c\udf4e",price:2.00},
+ {id:"oranges",cat:"sides",name:"Orange Slices",ic:"\ud83c\udf4a",price:2.00},
+ {id:"strawb",cat:"sides",name:"Strawberries",ic:"\ud83c\udf53",price:2.00},
+ {id:"mango",cat:"sides",name:"Mango Slices",ic:"\ud83e\udd6d",price:2.00},
  {id:"grapes",cat:"sides",name:"Grapes",ic:"\ud83c\udf47",price:2.00},
  {id:"blue",cat:"sides",name:"Blueberries",ic:"\ud83e\uded0",price:2.00},
 
@@ -795,7 +826,7 @@ var Q_LIBRARY=[                        /* pick a question, options already fille
  {name:"How many?",opts:[{label:"1",ic:"1\ufe0f\u20e3",d:0},{label:"2",ic:"2\ufe0f\u20e3",d:1.5},
    {label:"3",ic:"3\ufe0f\u20e3",d:3}]},
  {name:"Bun or no bun?",opts:[{label:"On a bun",ic:"\ud83c\udf5e",d:0},
-   {label:"No bun",ic:"\ud83c\udf5e",d:0,slash:true}]},
+   {label:"Lettuce wrap",ic:"\ud83e\udd6c",d:0},{label:"No bun",ic:"\ud83c\udf5e",d:0,slash:true}]},
  {name:"Which bread?",opts:[{label:"White bun",ic:"\ud83c\udf5e",d:0},{label:"Wheat bun",ic:"\ud83e\udd56",d:0},
    {label:"Pretzel bun",ic:"\ud83e\udd68",d:.5},{label:"No bun",ic:"\ud83c\udf5e",d:0,slash:true}]},
  {name:"Which wrap?",opts:[{label:"Flour tortilla",ic:"\ud83e\uded3",d:0},{label:"Corn tortilla",ic:"\ud83c\udf3d",d:0},
@@ -862,8 +893,31 @@ if(BAKED && store.get("ou_stamp",0)!==BAKED.stamp){   /* file exported with edit
   store.set("ou_over",state.over); store.set("ou_hidden",state.hidden);
   store.set("ou_arrange",state.arrange); store.set("ou_pricing",SECTION_PRICE);
 }
-function saveMenu(){ store.set("ou_custom",state.custom); store.set("ou_over",state.over);
-  store.set("ou_hidden",state.hidden); store.set("ou_arrange",state.arrange); }
+function menuIsEmpty(b){
+  return !b || ((!b.custom||!b.custom.length) && !Object.keys(b.over||{}).length &&
+                !Object.keys(b.hidden||{}).length && !Object.keys(b.arrange||{}).length);
+}
+function currentStored(){
+  return {custom:store.get("ou_custom",[]),over:store.get("ou_over",{}),
+          hidden:store.get("ou_hidden",{}),arrange:store.get("ou_arrange",{})};
+}
+function saveMenu(){
+  var was=currentStored();
+  var now={custom:state.custom,over:state.over,hidden:state.hidden,arrange:state.arrange};
+  /* one step of undo, and never let an empty state overwrite a real one silently */
+  if(!menuIsEmpty(was)) store.set("ou_backup",{when:Date.now(),data:was});
+  store.set("ou_custom",state.custom); store.set("ou_over",state.over);
+  store.set("ou_hidden",state.hidden); store.set("ou_arrange",state.arrange);
+}
+function restoreBackup(){
+  var b=store.get("ou_backup",null);
+  if(!b||!b.data){ alert("There is no backup saved yet."); return; }
+  var when=new Date(b.when);
+  if(!confirm("Put the menu back to how it was at "+when.toLocaleString()+"?")) return;
+  state.custom=b.data.custom||[]; state.over=b.data.over||{};
+  state.hidden=b.data.hidden||{}; state.arrange=b.data.arrange||{};
+  saveMenu(); renderRail(); renderGrid(); beep(900,.14);
+}
 /* the order the tiles sit in, per section - M. Tembo - 9/6/26 */
 function inSection(cat){
   return getMenu().filter(function(m){ return m.cat===cat||(m.also||[]).indexOf(cat)!==-1; });
@@ -2198,6 +2252,7 @@ $("importBtn").onclick=function(){
   f.appendChild(go); $("jsonScrim").classList.add("on");
 };
 $("jsonX").onclick=function(){ $("jsonScrim").classList.remove("on"); };
+$("undoBtn").onclick=restoreBackup;
 $("resetAllBtn").onclick=function(){
   if(!confirm("Put the whole menu back to the way it started?")) return;
   state.custom=[]; state.over={}; state.hidden={}; state.arrange={};
@@ -2234,10 +2289,9 @@ try{
   $("custBtn").classList.add("off"); $("editBtn").classList.add("off");
   initSpeech();
   renderRail(); renderGrid(); renderTicket();
-}catch(err){
-  state.custom=[]; state.over={}; state.hidden={};
-  try{ renderRail(); renderGrid(); renderTicket(); }
-  catch(e2){ $("bootwhy").textContent=(e2&&e2.message)||String(e2); $("bootmsg").className="on"; }
+}catch(err){                         /* show the problem, never wipe the menu - M. Tembo - 9/6/26 */
+  $("bootwhy").textContent=(err&&err.message)||String(err);
+  $("bootmsg").className="on";
 }
 </script>
 </body>
