@@ -13,6 +13,9 @@
 <title>Auggie's New Restaurant</title>
 <!-- Auggie's New Restaurant - order counter - M. Tembo - 9/6/26
      Version history (newest first)
+     10/12/26  Safari on the iPad ignored the CSS columns and printed the menu in one long column on 4
+               pages. I stopped relying on CSS columns: I now build the printed pages myself, 3 columns per
+               page, by measuring each item and placing it in a column until the column is full.
      10/12/26  I stopped the meal and sizes legend from printing. It still shows on the menu screen.
      10/12/26  I reworked the printed menu to fit on 2 pages (Just prices on 1). Every layout now prints in
                3 columns with compact type, and before printing I measure the menu and shrink or grow the
@@ -287,28 +290,30 @@ textarea#jsonBox{width:100%;height:210px;font-family:monospace;font-size:12px;pa
 #menuBody.d-short .mnote{font-size:10.5px;margin:1px 0 0 22px;line-height:1.35}
 #menuBody.d-price .mitem{margin-bottom:2px}
 /* compact print type, scaled by --ms so I can fit the menu to a page count - M. Tembo - 10/12/26 */
-/* #menuMeasure is the hidden copy I measure; #menuBody gets .pfit only while printing - M. Tembo - 10/12/26 */
-:is(#menuBody.pfit,#menuMeasure){background:#fff;padding:0}   /* M. Tembo - 10/12/26 */
-:is(#menuBody.pfit,#menuMeasure) .mhead{column-span:all;margin:0 0 calc(8px*var(--ms,1));padding-bottom:calc(6px*var(--ms,1))}   /* M. Tembo - 10/12/26 */
-:is(#menuBody.pfit,#menuMeasure) .mhead h1{font-size:calc(22px*var(--ms,1))}   /* M. Tembo - 10/12/26 */
-:is(#menuBody.pfit,#menuMeasure) .mhead p{font-size:calc(11px*var(--ms,1));margin-top:2px}   /* M. Tembo - 10/12/26 */
-:is(#menuBody.pfit,#menuMeasure) .mcat{font-size:calc(14px*var(--ms,1));margin:calc(9px*var(--ms,1)) 0 calc(4px*var(--ms,1));padding-bottom:2px;border-bottom-width:2px}   /* M. Tembo - 10/12/26 */
-:is(#menuBody.pfit,#menuMeasure) .mitem{margin-bottom:calc(5px*var(--ms,1))}   /* M. Tembo - 10/12/26 */
-:is(#menuBody.pfit,#menuMeasure) .mtop{font-size:calc(13px*var(--ms,1));gap:5px}   /* M. Tembo - 10/12/26 */
-:is(#menuBody.pfit,#menuMeasure) .mic{font-size:calc(15px*var(--ms,1))}   /* M. Tembo - 10/12/26 */
-:is(#menuBody.pfit,#menuMeasure) .mic svg{width:calc(15px*var(--ms,1));height:calc(15px*var(--ms,1));vertical-align:-3px}   /* M. Tembo - 10/12/26 */
-:is(#menuBody.pfit,#menuMeasure) .mdots{top:-3px}   /* M. Tembo - 10/12/26 */
-:is(#menuBody.pfit,#menuMeasure) .mnote{font-size:calc(10px*var(--ms,1));margin:1px 0 0 calc(20px*var(--ms,1));line-height:1.3}   /* M. Tembo - 10/12/26 */
-:is(#menuBody.pfit,#menuMeasure) .mlegend{font-size:calc(10px*var(--ms,1))!important;margin-left:0!important}   /* M. Tembo - 10/12/26 */
+/* #menuMeasure is the hidden copy I measure; #menuPrintOut holds the pages I built for printing - M. Tembo - 10/12/26 */
+:is(#menuPrintOut,#menuMeasure){background:#fff;padding:0}   /* M. Tembo - 10/12/26 */
+:is(#menuPrintOut,#menuMeasure) .mhead{margin:0 0 calc(8px*var(--ms,1));padding-bottom:calc(6px*var(--ms,1))}   /* M. Tembo - 10/12/26 */
+:is(#menuPrintOut,#menuMeasure) .mhead h1{font-size:calc(22px*var(--ms,1))}   /* M. Tembo - 10/12/26 */
+:is(#menuPrintOut,#menuMeasure) .mhead p{font-size:calc(11px*var(--ms,1));margin-top:2px}   /* M. Tembo - 10/12/26 */
+:is(#menuPrintOut,#menuMeasure) .mcat{font-size:calc(14px*var(--ms,1));margin:calc(9px*var(--ms,1)) 0 calc(4px*var(--ms,1));padding-bottom:2px;border-bottom-width:2px}   /* M. Tembo - 10/12/26 */
+:is(#menuPrintOut,#menuMeasure) .mitem{margin-bottom:calc(5px*var(--ms,1))}   /* M. Tembo - 10/12/26 */
+:is(#menuPrintOut,#menuMeasure) .mtop{font-size:calc(13px*var(--ms,1));gap:5px}   /* M. Tembo - 10/12/26 */
+:is(#menuPrintOut,#menuMeasure) .mic{font-size:calc(15px*var(--ms,1))}   /* M. Tembo - 10/12/26 */
+:is(#menuPrintOut,#menuMeasure) .mic svg{width:calc(15px*var(--ms,1));height:calc(15px*var(--ms,1));vertical-align:-3px}   /* M. Tembo - 10/12/26 */
+:is(#menuPrintOut,#menuMeasure) .mdots{top:-3px}   /* M. Tembo - 10/12/26 */
+:is(#menuPrintOut,#menuMeasure) .mnote{font-size:calc(10px*var(--ms,1));margin:1px 0 0 calc(20px*var(--ms,1));line-height:1.3}   /* M. Tembo - 10/12/26 */
+.pblock{display:flow-root;break-inside:avoid;page-break-inside:avoid}   /* a block keeps its margins inside so I can measure it - M. Tembo - 10/12/26 */
+#menuPrintOut{display:none;color:var(--ink)}   /* only shows when printing - M. Tembo - 10/12/26 */
+.ppage{break-after:page;page-break-after:always;break-inside:avoid;page-break-inside:avoid;padding-top:4px}   /* one printed page - M. Tembo - 10/12/26 */
+.ppage:last-child{break-after:auto;page-break-after:auto}   /* M. Tembo - 10/12/26 */
+.pcols{display:flex;gap:16px;align-items:flex-start}   /* 3 columns side by side - M. Tembo - 10/12/26 */
+.pcol{flex:1 1 0;min-width:0}   /* M. Tembo - 10/12/26 */
+:is(#menuPrintOut,#menuMeasure) .mlegend{font-size:calc(10px*var(--ms,1))!important;margin-left:0!important}   /* M. Tembo - 10/12/26 */
 @media print{
   html,body{height:auto;overflow:visible;background:#fff}
   #app,#drawerbar{display:none!important}
   .scrim{display:none!important}
-  .scrim#menuScrim.on{display:block!important;position:static;padding:0;background:#fff}
-  #menuScrim .sheet{max-width:100%;max-height:none;border:none;border-radius:0;background:#fff;overflow:visible}
-  #menuScrim .sheet-head{background:#fff;color:#000;padding:0;display:none}
-  #menuScrim .sheet-foot{display:none!important}
-  #menuBody{overflow:visible;padding:0;column-count:3;column-gap:16px}   /* 3 columns for every layout - M. Tembo - 10/12/26 */
+  #menuPrintOut{display:block!important}   /* I print my built pages, not the menu sheet - M. Tembo - 10/12/26 */
   .noprint{display:none!important}
   .mlegend{display:none!important}   /* I don't print the legend - M. Tembo - 10/12/26 */
   @page{margin:.35in}   /* M. Tembo - 10/12/26 */
@@ -1906,39 +1911,74 @@ function renderMenuSheet(){
       "Sizes where offered: small -$0.40, large +$0.70. Anything on an item can be left off.";
     b.appendChild(foot);
   }
-  var fit=fitMenu();   /* M. Tembo - 10/12/26 */
+  var fit=buildPrint();   /* M. Tembo - 10/12/26 */
   tip.textContent+=" "+(fit.ok?"Prints on "+fit.pages+(fit.pages>1?" pages":" page")+" at "+Math.round(fit.scale*100)+"% type."
-    :"Too long for "+fit.pages+(fit.pages>1?" pages":" page")+" even at the smallest type, so it will run over.");   /* M. Tembo - 10/12/26 */
+    :"Too long for "+fit.target+(fit.target>1?" pages":" page")+" even at the smallest type, so it prints on "+fit.pages+".");   /* M. Tembo - 10/12/26 */
 }
 
-/* Fit the printed menu to a page count: I copy it into a hidden column the width of one printed
-   column, then search for the biggest type size whose total height fills the pages - M. Tembo - 10/12/26 */
+/* Build the printed menu myself: Safari ignores CSS columns when printing. I measure every item at the
+   width of one printed column, pack items into 3 columns per page, and search for the biggest type size
+   that still fits the target pages - M. Tembo - 10/12/26 */
 var PRINT_PAGES={full:2,short:2,price:1};   /* M. Tembo - 10/12/26 */
 var FIT_MIN=0.72, FIT_MAX=1.3;   /* below 0.72 the notes get too small to read - M. Tembo - 10/12/26 */
-function fitMenu(){   /* M. Tembo - 10/12/26 */
-  var src=$("menuBody"), pages=PRINT_PAGES[MENU_DENSITY]||2;   /* M. Tembo - 10/12/26 */
-  var cols=3, gap=16, pageW=(8.5-0.7)*96, pageH=(11-0.7)*96;   /* letter paper, .35in margins - M. Tembo - 10/12/26 */
-  var colW=(pageW-gap*(cols-1))/cols;   /* M. Tembo - 10/12/26 */
+var PRINT_W=7.5*96, PRINT_H=10*96*0.97, PRINT_GAP=16, PRINT_COLS=3;   /* I assume up to .5in margins so Safari's own margins still fit - M. Tembo - 10/12/26 */
+function buildPrint(){   /* M. Tembo - 10/12/26 */
+  var src=$("menuBody"), target=PRINT_PAGES[MENU_DENSITY]||2;   /* M. Tembo - 10/12/26 */
+  var colW=(PRINT_W-PRINT_GAP*(PRINT_COLS-1))/PRINT_COLS;   /* M. Tembo - 10/12/26 */
   var m=document.createElement("div"); m.id="menuMeasure";   /* M. Tembo - 10/12/26 */
-  m.style.cssText="position:absolute;left:-9999px;top:0;visibility:hidden;column-count:1;width:"+colW+"px";   /* M. Tembo - 10/12/26 */
-  m.innerHTML=src.innerHTML;   /* M. Tembo - 10/12/26 */
-  Array.prototype.forEach.call(m.querySelectorAll(".noprint,.mlegend"),function(n){ n.remove(); });   /* the legend doesn't print, so I don't measure it - M. Tembo - 10/12/26 */   /* M. Tembo - 10/12/26 */
+  m.style.cssText="position:absolute;left:-9999px;top:0;visibility:hidden;width:"+colW+"px";   /* M. Tembo - 10/12/26 */
+  var head=document.createElement("div"); head.className="pblock"; head.style.width=PRINT_W+"px";   /* M. Tembo - 10/12/26 */
+  var blocks=[], cat=null;   /* M. Tembo - 10/12/26 */
+  Array.prototype.forEach.call(src.children,function(n){   /* M. Tembo - 10/12/26 */
+    if(n.classList.contains("noprint")||n.classList.contains("mlegend")) return;   /* M. Tembo - 10/12/26 */
+    var c=n.cloneNode(true);   /* M. Tembo - 10/12/26 */
+    if(n.classList.contains("mhead")){ head.appendChild(c); return; }   /* M. Tembo - 10/12/26 */
+    if(n.classList.contains("mcat")){ cat=c; return; }   /* a section title stays with its first item - M. Tembo - 10/12/26 */
+    var w=document.createElement("div"); w.className="pblock";   /* M. Tembo - 10/12/26 */
+    if(cat){ w.appendChild(cat); cat=null; }   /* M. Tembo - 10/12/26 */
+    w.appendChild(c); blocks.push(w);   /* M. Tembo - 10/12/26 */
+  });
+  m.appendChild(head); blocks.forEach(function(x){ m.appendChild(x); });   /* M. Tembo - 10/12/26 */
   document.body.appendChild(m);   /* M. Tembo - 10/12/26 */
-  var budget=pages*cols*pageH*0.9;   /* I leave 10% for column breaks that keep an item together - M. Tembo - 10/12/26 */
-  function tall(sc){ m.style.setProperty("--ms",sc); return m.scrollHeight; }   /* M. Tembo - 10/12/26 */
+  function pack(sc){   /* returns pages, each a list of columns of block numbers - M. Tembo - 10/12/26 */
+    m.style.setProperty("--ms",sc);   /* M. Tembo - 10/12/26 */
+    var hh=head.offsetHeight, out=[[[]]], p=0, c=0, used=hh;   /* M. Tembo - 10/12/26 */
+    blocks.forEach(function(x,i){   /* M. Tembo - 10/12/26 */
+      var h=x.offsetHeight;   /* M. Tembo - 10/12/26 */
+      if(used+h>PRINT_H&&out[p][c].length){   /* M. Tembo - 10/12/26 */
+        c++; if(c>=PRINT_COLS){ p++; c=0; out.push([[]]); } else out[p].push([]);   /* M. Tembo - 10/12/26 */
+        used=(p===0?hh:0);   /* M. Tembo - 10/12/26 */
+      }
+      out[p][c].push(i); used+=h;   /* M. Tembo - 10/12/26 */
+    });
+    return out;   /* M. Tembo - 10/12/26 */
+  }
   var best=FIT_MIN, ok=true;   /* M. Tembo - 10/12/26 */
-  if(tall(FIT_MAX)<=budget) best=FIT_MAX;   /* M. Tembo - 10/12/26 */
-  else if(tall(FIT_MIN)>budget) ok=false;   /* M. Tembo - 10/12/26 */
+  if(pack(FIT_MAX).length<=target) best=FIT_MAX;   /* M. Tembo - 10/12/26 */
+  else if(pack(FIT_MIN).length>target) ok=false;   /* M. Tembo - 10/12/26 */
   else{ var lo=FIT_MIN, hi=FIT_MAX;   /* M. Tembo - 10/12/26 */
-    for(var i=0;i<9;i++){ var mid=(lo+hi)/2; if(tall(mid)<=budget){ best=mid; lo=mid; } else hi=mid; } }   /* M. Tembo - 10/12/26 */
+    for(var i=0;i<9;i++){ var mid=(lo+hi)/2; if(pack(mid).length<=target){ best=mid; lo=mid; } else hi=mid; } }   /* M. Tembo - 10/12/26 */
+  var layout=pack(best);   /* M. Tembo - 10/12/26 */
   m.remove();   /* M. Tembo - 10/12/26 */
-  src.style.setProperty("--ms",best.toFixed(3));   /* M. Tembo - 10/12/26 */
-  return {ok:ok,scale:best,pages:pages};   /* M. Tembo - 10/12/26 */
+  var outEl=$("menuPrintOut");   /* M. Tembo - 10/12/26 */
+  if(!outEl){ outEl=document.createElement("div"); outEl.id="menuPrintOut"; document.body.appendChild(outEl); }   /* M. Tembo - 10/12/26 */
+  outEl.innerHTML=""; outEl.style.setProperty("--ms",best.toFixed(3));   /* M. Tembo - 10/12/26 */
+  layout.forEach(function(pg,pi){   /* M. Tembo - 10/12/26 */
+    var page=document.createElement("div"); page.className="ppage";   /* M. Tembo - 10/12/26 */
+    if(pi===0){ head.style.width=""; page.appendChild(head); }   /* M. Tembo - 10/12/26 */
+    var cols=document.createElement("div"); cols.className="pcols";   /* M. Tembo - 10/12/26 */
+    for(var ci=0;ci<PRINT_COLS;ci++){   /* I always make 3 columns so widths match what I measured - M. Tembo - 10/12/26 */
+      var col=document.createElement("div"); col.className="pcol";   /* M. Tembo - 10/12/26 */
+      (pg[ci]||[]).forEach(function(bi){ col.appendChild(blocks[bi]); });   /* M. Tembo - 10/12/26 */
+      cols.appendChild(col);   /* M. Tembo - 10/12/26 */
+    }
+    page.appendChild(cols); outEl.appendChild(page);   /* M. Tembo - 10/12/26 */
+  });
+  return {ok:ok,scale:best,pages:layout.length,target:target};   /* M. Tembo - 10/12/26 */
 }
-function prepPrint(){ if(!$("menuScrim").classList.contains("on")) return; fitMenu(); $("menuBody").classList.add("pfit"); }   /* M. Tembo - 10/12/26 */
-function endPrint(){ $("menuBody").classList.remove("pfit"); }   /* M. Tembo - 10/12/26 */
+function prepPrint(){ if($("menuScrim").classList.contains("on")) buildPrint(); }   /* M. Tembo - 10/12/26 */
+function endPrint(){ var o=$("menuPrintOut"); if(o) o.innerHTML=""; }   /* I clear the printed pages when the menu closes - M. Tembo - 10/12/26 */
 window.addEventListener("beforeprint",prepPrint);   /* covers printing from the Share menu too - M. Tembo - 10/12/26 */
-window.addEventListener("afterprint",endPrint);   /* M. Tembo - 10/12/26 */
 $("menuBtn").onclick=function(){ renderMenuSheet(); beep(760,.07); $("menuScrim").classList.add("on"); };
 $("menuX").onclick=function(){ $("menuScrim").classList.remove("on"); endPrint(); };   /* M. Tembo - 10/12/26 */
 $("menuClose").onclick=function(){ $("menuScrim").classList.remove("on"); endPrint(); };   /* M. Tembo - 10/12/26 */
