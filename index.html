@@ -13,6 +13,11 @@
 <title>Auggie's New Restaurant</title>
 <!-- Auggie's New Restaurant - order counter - M. Tembo - 9/6/26
      Version history (newest first)
+     10/12/26  I stopped the meal and sizes legend from printing. It still shows on the menu screen.
+     10/12/26  I reworked the printed menu to fit on 2 pages (Just prices on 1). Every layout now prints in
+               3 columns with compact type, and before printing I measure the menu and shrink or grow the
+               type to fill the target pages. "Everything" no longer repeats the meal and kids meal wording
+               under every item; it uses the short tags plus the legend at the bottom, like Short does.
      10/11/26  I fixed the portrait order drawer: the green total bar was sitting on top of the
                Take payment button, so I hide the bar while the drawer is open and pad the buttons
                for the home indicator. I added number pictures (1-10, 15, 20, 25, 30) for "How many?"
@@ -281,6 +286,20 @@ textarea#jsonBox{width:100%;height:210px;font-family:monospace;font-size:12px;pa
 #menuBody.d-short .mic svg,#menuBody.d-price .mic svg{width:17px;height:17px}
 #menuBody.d-short .mnote{font-size:10.5px;margin:1px 0 0 22px;line-height:1.35}
 #menuBody.d-price .mitem{margin-bottom:2px}
+/* compact print type, scaled by --ms so I can fit the menu to a page count - M. Tembo - 10/12/26 */
+/* #menuMeasure is the hidden copy I measure; #menuBody gets .pfit only while printing - M. Tembo - 10/12/26 */
+:is(#menuBody.pfit,#menuMeasure){background:#fff;padding:0}   /* M. Tembo - 10/12/26 */
+:is(#menuBody.pfit,#menuMeasure) .mhead{column-span:all;margin:0 0 calc(8px*var(--ms,1));padding-bottom:calc(6px*var(--ms,1))}   /* M. Tembo - 10/12/26 */
+:is(#menuBody.pfit,#menuMeasure) .mhead h1{font-size:calc(22px*var(--ms,1))}   /* M. Tembo - 10/12/26 */
+:is(#menuBody.pfit,#menuMeasure) .mhead p{font-size:calc(11px*var(--ms,1));margin-top:2px}   /* M. Tembo - 10/12/26 */
+:is(#menuBody.pfit,#menuMeasure) .mcat{font-size:calc(14px*var(--ms,1));margin:calc(9px*var(--ms,1)) 0 calc(4px*var(--ms,1));padding-bottom:2px;border-bottom-width:2px}   /* M. Tembo - 10/12/26 */
+:is(#menuBody.pfit,#menuMeasure) .mitem{margin-bottom:calc(5px*var(--ms,1))}   /* M. Tembo - 10/12/26 */
+:is(#menuBody.pfit,#menuMeasure) .mtop{font-size:calc(13px*var(--ms,1));gap:5px}   /* M. Tembo - 10/12/26 */
+:is(#menuBody.pfit,#menuMeasure) .mic{font-size:calc(15px*var(--ms,1))}   /* M. Tembo - 10/12/26 */
+:is(#menuBody.pfit,#menuMeasure) .mic svg{width:calc(15px*var(--ms,1));height:calc(15px*var(--ms,1));vertical-align:-3px}   /* M. Tembo - 10/12/26 */
+:is(#menuBody.pfit,#menuMeasure) .mdots{top:-3px}   /* M. Tembo - 10/12/26 */
+:is(#menuBody.pfit,#menuMeasure) .mnote{font-size:calc(10px*var(--ms,1));margin:1px 0 0 calc(20px*var(--ms,1));line-height:1.3}   /* M. Tembo - 10/12/26 */
+:is(#menuBody.pfit,#menuMeasure) .mlegend{font-size:calc(10px*var(--ms,1))!important;margin-left:0!important}   /* M. Tembo - 10/12/26 */
 @media print{
   html,body{height:auto;overflow:visible;background:#fff}
   #app,#drawerbar{display:none!important}
@@ -289,11 +308,10 @@ textarea#jsonBox{width:100%;height:210px;font-family:monospace;font-size:12px;pa
   #menuScrim .sheet{max-width:100%;max-height:none;border:none;border-radius:0;background:#fff;overflow:visible}
   #menuScrim .sheet-head{background:#fff;color:#000;padding:0;display:none}
   #menuScrim .sheet-foot{display:none!important}
-  #menuBody{overflow:visible;padding:0;column-count:2;column-gap:28px}
-  #menuBody.d-short,#menuBody.d-price{column-count:3;column-gap:18px}
+  #menuBody{overflow:visible;padding:0;column-count:3;column-gap:16px}   /* 3 columns for every layout - M. Tembo - 10/12/26 */
   .noprint{display:none!important}
-  .mhead h1{font-size:26px}
-  @page{margin:.45in}
+  .mlegend{display:none!important}   /* I don't print the legend - M. Tembo - 10/12/26 */
+  @page{margin:.35in}   /* M. Tembo - 10/12/26 */
 }
 table.pmatrix{width:100%;border-collapse:collapse;background:var(--paper);border:3px solid var(--line);border-radius:12px;overflow:hidden}
 table.pmatrix th,table.pmatrix td{padding:8px 10px;font-size:15px;text-align:left;border-bottom:2px solid var(--line)}
@@ -1825,9 +1843,9 @@ function renderMenuSheet(){
     ctl.appendChild(btn);
   });
   var tip=document.createElement("span"); tip.className="tip";
-  tip.textContent=MENU_DENSITY==="full"?"Every question spelled out. Longest to print."
-    :MENU_DENSITY==="short"?"All the choices, packed tight. Usually two sheets."
-    :"Names and prices only. Usually one sheet.";
+  tip.textContent=MENU_DENSITY==="full"?"Every question on its own line."   /* M. Tembo - 10/12/26 */
+    :MENU_DENSITY==="short"?"All the choices, packed into one line per item."   /* M. Tembo - 10/12/26 */
+    :"Names and prices only.";   /* M. Tembo - 10/12/26 */
   ctl.appendChild(tip);
   b.appendChild(ctl);
   var head=document.createElement("div"); head.className="mhead";
@@ -1844,29 +1862,29 @@ function renderMenuSheet(){
         '<span class="mname">'+m.name+'</span><span class="mdots"></span>'+
         '<span class="mprice">'+(m.price===0?"free":money(m.price))+'</span></div>';
       var notes=[];
-      if(m.sizes&&MENU_DENSITY==="full") notes.push("<b>Sizes:</b> small -$0.40, medium, large +$0.70");
-      else if(m.sizes) notes.push("<b>Sizes</b>");
+      var tags=[];   /* short tags share one line instead of a line each - M. Tembo - 10/12/26 */
+      if(m.sizes) tags.push("<b>Sizes</b>");   /* the legend spells sizes out now - M. Tembo - 10/12/26 */
       (m.choices||[]).forEach(function(q){
         if(q.opts&&q.opts.length)
           notes.push("<b>"+q.name.replace(/\?$/,"")+":</b> "+q.opts.map(optTxt).join(", "));
       });
       if(m.parts&&m.parts.length)
-        notes.push("<b>Comes with:</b> "+m.parts.map(function(x){ return x.name; }).join(", ")+
-          " (say the word to leave any of it off)");
+        notes.push("<b>Comes with:</b> "+m.parts.map(function(x){ return x.name; }).join(", "));   /* the legend covers leaving things off - M. Tembo - 10/12/26 */
       if(m.extras&&m.extras.length)
         notes.push("<b>"+((m.parts&&m.parts.length)?"Add":"Choose your toppings")+":</b> "+listNames(m.extras));
-      var brief=(MENU_DENSITY!=="full");
-      if(m.meal) notes.push(brief?"<b>\ud83c\udf5f meal</b>"
+      var brief=true;   /* short meal tags in every layout, the legend explains them - M. Tembo - 10/12/26 */
+      if(m.meal) tags.push(brief?"<b>\ud83c\udf5f meal</b>"   /* M. Tembo - 10/12/26 */
         :"<b>Make it a meal</b> +$2.99 with a side, a drink and a dipping sauce, large meal +$3.79");
-      if(m.kidsmeal) notes.push(brief?"<b>\ud83e\uddf8 kids meal</b>"
+      if(m.kidsmeal) tags.push(brief?"<b>\ud83e\uddf8 kids meal</b>"   /* M. Tembo - 10/12/26 */
         :"<b>Comes with</b> a side, a drink, a dipping sauce and a toy, or just the food on its own -$1.50");
-      if(m.kidsok) notes.push(brief?"<b>\ud83e\uddf8 kids meal</b>"
+      if(m.kidsok) tags.push(brief?"<b>\ud83e\uddf8 kids meal</b>"   /* M. Tembo - 10/12/26 */
         :"<b>Kids meal</b> +$2.00 with a smaller side, a drink and a toy");
       if(m.also&&m.also.length) notes.push("<b>Also served as:</b> "+m.also.map(function(id){
         var nm=sectionName(id).toLowerCase().replace(/s$/,"");
         var word=id==="kids"?"a kids portion":(("aeiou".indexOf(nm.charAt(0))>=0?"an ":"a ")+nm+" portion");
         return word+" "+money(priceIn(m,id)); }).join(", "));
-      if(m.sauces&&!m.kidsmeal&&!m.meal) notes.push("<b>Pick a dipping sauce</b>");
+      if(m.sauces&&!m.kidsmeal&&!m.meal) tags.push("<b>Pick a dipping sauce</b>");   /* M. Tembo - 10/12/26 */
+      if(tags.length) notes.push(tags.join(" \u00b7 "));   /* M. Tembo - 10/12/26 */
       if(MENU_DENSITY==="price") notes=[];
       if(MENU_DENSITY==="short"&&notes.length){
         var one=document.createElement("div"); one.className="mnote";
@@ -1879,19 +1897,52 @@ function renderMenuSheet(){
       b.appendChild(row);
     });
   });
-  if(MENU_DENSITY!=="full"){
-    var foot=document.createElement("div"); foot.className="mnote";
+  {   /* every layout gets the legend now - M. Tembo - 10/12/26 */
+    var foot=document.createElement("div"); foot.className="mnote mlegend";   /* M. Tembo - 10/12/26 */
     foot.style.cssText="margin:14px 0 0;border-top:3px double var(--red);padding-top:8px;font-size:11px";
     foot.innerHTML="<b>\ud83c\udf5f meal</b> +$2.99, or large meal +$3.79: adds a side, a drink and a dipping sauce. "+
       "<b>\ud83e\uddf8 kids meal</b> +$2.00: a smaller side, a drink and a toy. "+
+      "Kids meal items can be just the food for $1.50 less. "+   /* this was only spelled out in Everything before - M. Tembo - 10/12/26 */
       "Sizes where offered: small -$0.40, large +$0.70. Anything on an item can be left off.";
     b.appendChild(foot);
   }
+  var fit=fitMenu();   /* M. Tembo - 10/12/26 */
+  tip.textContent+=" "+(fit.ok?"Prints on "+fit.pages+(fit.pages>1?" pages":" page")+" at "+Math.round(fit.scale*100)+"% type."
+    :"Too long for "+fit.pages+(fit.pages>1?" pages":" page")+" even at the smallest type, so it will run over.");   /* M. Tembo - 10/12/26 */
 }
+
+/* Fit the printed menu to a page count: I copy it into a hidden column the width of one printed
+   column, then search for the biggest type size whose total height fills the pages - M. Tembo - 10/12/26 */
+var PRINT_PAGES={full:2,short:2,price:1};   /* M. Tembo - 10/12/26 */
+var FIT_MIN=0.72, FIT_MAX=1.3;   /* below 0.72 the notes get too small to read - M. Tembo - 10/12/26 */
+function fitMenu(){   /* M. Tembo - 10/12/26 */
+  var src=$("menuBody"), pages=PRINT_PAGES[MENU_DENSITY]||2;   /* M. Tembo - 10/12/26 */
+  var cols=3, gap=16, pageW=(8.5-0.7)*96, pageH=(11-0.7)*96;   /* letter paper, .35in margins - M. Tembo - 10/12/26 */
+  var colW=(pageW-gap*(cols-1))/cols;   /* M. Tembo - 10/12/26 */
+  var m=document.createElement("div"); m.id="menuMeasure";   /* M. Tembo - 10/12/26 */
+  m.style.cssText="position:absolute;left:-9999px;top:0;visibility:hidden;column-count:1;width:"+colW+"px";   /* M. Tembo - 10/12/26 */
+  m.innerHTML=src.innerHTML;   /* M. Tembo - 10/12/26 */
+  Array.prototype.forEach.call(m.querySelectorAll(".noprint,.mlegend"),function(n){ n.remove(); });   /* the legend doesn't print, so I don't measure it - M. Tembo - 10/12/26 */   /* M. Tembo - 10/12/26 */
+  document.body.appendChild(m);   /* M. Tembo - 10/12/26 */
+  var budget=pages*cols*pageH*0.9;   /* I leave 10% for column breaks that keep an item together - M. Tembo - 10/12/26 */
+  function tall(sc){ m.style.setProperty("--ms",sc); return m.scrollHeight; }   /* M. Tembo - 10/12/26 */
+  var best=FIT_MIN, ok=true;   /* M. Tembo - 10/12/26 */
+  if(tall(FIT_MAX)<=budget) best=FIT_MAX;   /* M. Tembo - 10/12/26 */
+  else if(tall(FIT_MIN)>budget) ok=false;   /* M. Tembo - 10/12/26 */
+  else{ var lo=FIT_MIN, hi=FIT_MAX;   /* M. Tembo - 10/12/26 */
+    for(var i=0;i<9;i++){ var mid=(lo+hi)/2; if(tall(mid)<=budget){ best=mid; lo=mid; } else hi=mid; } }   /* M. Tembo - 10/12/26 */
+  m.remove();   /* M. Tembo - 10/12/26 */
+  src.style.setProperty("--ms",best.toFixed(3));   /* M. Tembo - 10/12/26 */
+  return {ok:ok,scale:best,pages:pages};   /* M. Tembo - 10/12/26 */
+}
+function prepPrint(){ if(!$("menuScrim").classList.contains("on")) return; fitMenu(); $("menuBody").classList.add("pfit"); }   /* M. Tembo - 10/12/26 */
+function endPrint(){ $("menuBody").classList.remove("pfit"); }   /* M. Tembo - 10/12/26 */
+window.addEventListener("beforeprint",prepPrint);   /* covers printing from the Share menu too - M. Tembo - 10/12/26 */
+window.addEventListener("afterprint",endPrint);   /* M. Tembo - 10/12/26 */
 $("menuBtn").onclick=function(){ renderMenuSheet(); beep(760,.07); $("menuScrim").classList.add("on"); };
-$("menuX").onclick=function(){ $("menuScrim").classList.remove("on"); };
-$("menuClose").onclick=function(){ $("menuScrim").classList.remove("on"); };
-$("menuPrint").onclick=function(){ try{ window.print(); }catch(e){} };
+$("menuX").onclick=function(){ $("menuScrim").classList.remove("on"); endPrint(); };   /* M. Tembo - 10/12/26 */
+$("menuClose").onclick=function(){ $("menuScrim").classList.remove("on"); endPrint(); };   /* M. Tembo - 10/12/26 */
+$("menuPrint").onclick=function(){ prepPrint(); try{ window.print(); }catch(e){} };   /* M. Tembo - 10/12/26 */
 
 /* ================= history ================= */
 $("histBtn").onclick=function(){
