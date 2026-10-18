@@ -13,6 +13,11 @@
 <title>Auggie's New Restaurant</title>
 <!-- Auggie's New Restaurant - order counter - M. Tembo - 9/6/26
      Version history (newest first)
+     10/18/26  I opened up the pictures for custom foods. The picker only offered a starter emoji list, so emoji
+               the built-in menu uses (like the lemon) were missing; it now offers every emoji the menu uses,
+               plus lemon, ginger and a few more. Any 2 pictures can go together now (drawn, emoji or imported),
+               for foods and for answers. I added importing a picture from the tablet (shrunk to 128px, saved
+               with the menu, and carried in the whole-app and .json exports). Hold an imported picture to remove it.
      10/18/26  I fixed menu edits disappearing. The whole-app export looked for its marker by exact text, and on the
                second export it found that text inside its own code and wrote the menu there, which broke the script
                so nothing loaded. It now finds the BAKE line by pattern and checks there is exactly one. When a newer
@@ -86,7 +91,10 @@ body.editing #editbar{display:flex}
 #pickScrim{z-index:30}
 #pickBody .emopick{max-height:none;grid-template-columns:repeat(auto-fill,minmax(56px,1fr));gap:7px}
 #pickBody .emo{font-size:32px;padding:9px 0}
-#pickBody .emo svg{width:32px;height:32px}
+#pickBody .emo svg{width:32px;height:32px}   /* M. Tembo - 10/18/26 */
+.picksec{grid-column:1/-1;font-size:13px;opacity:.75;padding:4px 2px 0}   /* M. Tembo - 10/18/26 */
+.emo.addpic{font-size:15px;background:var(--sun);color:var(--ink)}   /* M. Tembo - 10/18/26 */
+.pickhint{font-size:14px;text-align:center;margin:4px 0 8px}   /* M. Tembo - 10/18/26 */
 .addrow button.emobtn{min-width:48px;font-size:22px;line-height:1;padding:7px 10px}
 .addrow button.emobtn .mini{width:26px;height:26px;vertical-align:-.3em}
 .line .lic svg{width:1em;height:1em;display:block}
@@ -669,12 +677,30 @@ NUMS.forEach(function(n){   /* M. Tembo - 10/11/26 */
     'font-family="Chalkboard SE,Comic Sans MS,Trebuchet MS,system-ui,sans-serif">'+n+'</text>');   /* M. Tembo - 10/11/26 */
 });
 function isArt(s){ return typeof s==="string" && s.slice(0,4)==="art:"; }
-function icoInner(s){ return isArt(s) ? (ART[s.slice(4)]||NUM_ART[s.slice(4)]||"\u2753") : s; }   /* I look up number pictures too - M. Tembo - 10/11/26 */
-function icHTML(s, extra){
-  if(isArt(s)) return '<span class="ic art'+(extra||"")+'">'+icoInner(s)+'</span>';
+/* pictures I imported are "img:<id>", and 2 pictures of any kind are stored as "a|b" - M. Tembo - 10/18/26 */
+function isImg(s){ return typeof s==="string" && s.slice(0,4)==="img:"; }   /* M. Tembo - 10/18/26 */
+function icParts(s){ return (typeof s==="string" && s.indexOf("|")!==-1) ? s.split("|").filter(Boolean).slice(0,2) : [s]; }   /* M. Tembo - 10/18/26 */
+function isPic(s){ return isArt(s)||isImg(s)||icParts(s).length>1; }   /* M. Tembo - 10/18/26 */
+function picSvg(p){   /* M. Tembo - 10/18/26 */
+  if(isArt(p)) return ART[p.slice(4)]||NUM_ART[p.slice(4)]||null;   /* M. Tembo - 10/18/26 */
+  if(isImg(p)){ var u=(state&&state.icons||{})[p.slice(4)];   /* M. Tembo - 10/18/26 */
+    return u ? sv('<image href="'+u+'" x="2" y="2" width="60" height="60" preserveAspectRatio="xMidYMid meet"/>') : null; }   /* M. Tembo - 10/18/26 */
+  return sv('<text x="32" y="35" font-size="50" text-anchor="middle" dominant-baseline="middle">'+p+'</text>');   /* M. Tembo - 10/18/26 */
+}   /* M. Tembo - 10/18/26 */
+function icoInner(s){   /* M. Tembo - 10/18/26 */
+  var ps=icParts(s);   /* M. Tembo - 10/18/26 */
+  if(ps.length>1) return sv(ps.map(function(p,i){            /* 2 pictures overlap corner to corner in one drawing */   /* M. Tembo - 10/18/26 */
+    return (picSvg(p)||picSvg("\u2753")).replace("<svg ",'<svg x="'+(i?20:-4)+'" y="'+(i?18:-2)+'" width="48" height="48" ');   /* M. Tembo - 10/18/26 */
+  }).join("")).replace("<svg ",'<svg style="overflow:visible" ');   /* M. Tembo - 10/18/26 */
+  if(isArt(s)) return ART[s.slice(4)]||NUM_ART[s.slice(4)]||"\u2753";   /* I look up number pictures too - M. Tembo - 10/11/26 */
+  if(isImg(s)) return picSvg(s)||"\u2753";   /* M. Tembo - 10/18/26 */
+  return s;   /* M. Tembo - 10/18/26 */
+}   /* M. Tembo - 10/18/26 */
+function icHTML(s, extra){   /* M. Tembo - 10/18/26 */
+  if(isPic(s)) return '<span class="ic art'+(extra||"")+'">'+icoInner(s)+'</span>';   /* M. Tembo - 10/18/26 */
   return '<span class="ic'+(iconCount(s)>1?" duo":"")+(extra||"")+'">'+s+'</span>';
 }
-function mini(s){ return isArt(s) ? '<span class="mini">'+icoInner(s)+'</span>' : s; }
+function mini(s){ return isPic(s) ? '<span class="mini">'+icoInner(s)+'</span>' : s; }   /* M. Tembo - 10/18/26 */
 
 var store={ get:function(k,d){try{var v=localStorage.getItem(k);return v===null?d:JSON.parse(v);}catch(e){return d;}},
             set:function(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}} };
@@ -879,6 +905,7 @@ var MENU=[
 
 var EMOJIS=("🍔 🍟 🌭 🍕 🥪 🌮 🌯 🥙 🧆 🥗 🍝 🍜 🍲 🍛 🍣 🍤 🍗 🍖 🥩 🥓 🍢 🥚 🍳 🧀 🥞 🧇 🍞 🥐 🥨 🥯 🍿 🥜 "+
  "🥔 🥕 🌽 🥦 🥬 🧅 🍄 🍅 🥑 🥃 🌴 🥭 🫒 🌶️ 🥒 🍇 🍓 🫐 🥭 🍌 🍎 🍉 🍊 🍍 🥝 🍒 🍑 🥥 🌿 🍦 🍧 🍨 🍩 🍪 🎂 🧁 🥧 🍫 🍬 🍭 "+
+ "🍋 🫚 🧄 🍏 🍐 🍈 🍚 🍙 🥟 🍰 🫖 🥠 "+   /* lemon, ginger and a few more were missing - M. Tembo - 10/18/26 */
  "🫓 🍕 🫑 🥫 🫒 🍮 🥤 🧃 🧋 ☕ 🍵 🥛 💧 🧊 🍯 🧂 🧈 🥣 🥢 🍽️ 🧻 🧸 🎈 🪀 ⭐ 🔥 🥵 ☁️ 🌀 🦖 🐔 🐓 🐮 🐷 🚀 👑 🎉 🚫 🟤 ⚫ 🟠 🟢 🌗").split(" ");
 
 var PART_PRESETS=[{name:"lettuce",ic:"🥬"},{name:"tomato",ic:"🍅"},{name:"onion",ic:"🧅"},{name:"pickles",ic:"🥒"},
@@ -946,7 +973,7 @@ var state={cat:"entrees",order:[],mode:null,
  history:sess.get("ou_hist",[]),
  talk:store.get("ou_talk",true), customer:false, editing:false,
  custom:store.get("ou_custom",[]), over:store.get("ou_over",{}), hidden:store.get("ou_hidden",{}),
- arrange:store.get("ou_arrange",{})};
+ arrange:store.get("ou_arrange",{}), icons:store.get("ou_icons",{})};   /* M. Tembo - 10/18/26 */
 state.custom.forEach(function(c){ if(c.cat==="chicken") c.cat="entrees"; });
 
 /* I merged the 10/11 and 10/18 baked menus here so nothing from either is lost - M. Tembo - 10/18/26 */
@@ -967,8 +994,10 @@ if(BAKED && store.get("ou_stamp",0)!==BAKED.stamp){   /* file exported with edit
   for(k in (BAKED.over||{})) state.over[k]=BAKED.over[k];                    /* the file wins where both changed a food - M. Tembo - 10/18/26 */
   state.hidden=BAKED.hidden||{};
   state.arrange=BAKED.arrange||{};
-  if(BAKED.pricing) SECTION_PRICE=BAKED.pricing;
-  store.set("ou_stamp",BAKED.stamp); store.set("ou_custom",state.custom);
+  if(BAKED.pricing) SECTION_PRICE=BAKED.pricing;   /* M. Tembo - 10/18/26 */
+  for(k in (BAKED.icons||{})) if(!state.icons[k]) state.icons[k]=BAKED.icons[k];   /* M. Tembo - 10/18/26 */
+  saveIcons();   /* M. Tembo - 10/18/26 */
+  store.set("ou_stamp",BAKED.stamp);   /* M. Tembo - 10/18/26 */ store.set("ou_custom",state.custom);
   store.set("ou_over",state.over); store.set("ou_hidden",state.hidden);
   store.set("ou_arrange",state.arrange); store.set("ou_pricing",SECTION_PRICE);
 }
@@ -1432,7 +1461,7 @@ function renderOpts(){
     gr.opts.forEach(function(o,oi){
       var on=(pending.picks[gr.key]||[]).indexOf(oi)!==-1;
       var b=document.createElement("button"); b.className="opt"+(on?" on":"");
-      b.innerHTML='<span class="ic'+(isArt(o.ic)?" art":"")+(o.slash?" slash":"")+'">'+icoInner(o.ic)+
+      b.innerHTML='<span class="ic'+(isPic(o.ic)?" art":"")+(o.slash?" slash":"")+'">'+icoInner(o.ic)+   /* M. Tembo - 10/18/26 */
         '</span><span>'+o.label+'</span>'+(o.d?'<span class="d">'+(o.d>0?"+"+money(o.d):"-"+money(-o.d))+'</span>':'');
       b.onclick=function(){
         if(gr.type==="one") pending.picks[gr.key]=[oi];
@@ -2036,7 +2065,7 @@ function openEditor(id){
   if(!draft.choices) draft.choices=[];
   if(!draft.also) draft.also=[];
   if(!draft.hide) draft.hide=[];
-  duoMode=iconCount(draft.ic)>1;
+  duoMode=icParts(draft.ic).length>1||(!isPic(draft.ic)&&iconCount(draft.ic)>1);   /* M. Tembo - 10/18/26 */
   renderEditor(); $("editScrim").classList.add("on");
 }
 $("edX").onclick=function(){ $("editScrim").classList.remove("on"); draft=null; };
@@ -2056,30 +2085,117 @@ function fieldNum(l,v,cb){
   d.appendChild(i); return d;
 }
 var partEmo="🥬",extraEmo="🥓",optEmo="🍓";
-function btnIco(s){ return isArt(s)?'<span class="mini">'+icoInner(s)+'</span>':s; }
+function btnIco(s){ return isPic(s)?'<span class="mini">'+icoInner(s)+'</span>':s; }   /* M. Tembo - 10/18/26 */
 
 /* full picture list in a modal instead of tapping through one at a time - M. Tembo - 9/6/26 */
-var pickCb=null;
-function openPicker(current,cb){
-  pickCb=cb;
-  var body=$("pickBody"); body.innerHTML="";
-  var g=document.createElement("div"); g.className="emopick";
-  function add(val,html){
-    var b=document.createElement("button");
-    b.className="emo"+(current===val?" on":"");
-    b.innerHTML=html;
-    b.onclick=function(){
-      $("pickScrim").classList.remove("on");
-      var f=pickCb; pickCb=null; beep(990,.06); if(f) f(val);
-    };
-    g.appendChild(b);
-  }
-  NUMS.forEach(function(n){ add("art:num"+n,NUM_ART["num"+n]); });   /* numbers first so I can pick them as the answer picture - M. Tembo - 10/11/26 */
-  Object.keys(ART).forEach(function(k){ add("art:"+k,ART[k]); });
-  EMOJIS.forEach(function(e){ add(e,e); });
-  body.appendChild(g);
-  $("pickScrim").classList.add("on");
-}
+var pickCb=null,pickCur=null,pickDuo=false,pickFirst=null;   /* M. Tembo - 10/18/26 */
+/* every built-in emoji is offered, not only the starter list, so the lemon and the rest show up - M. Tembo - 10/18/26 */
+var _allEmo=null;   /* M. Tembo - 10/18/26 */
+function splitEmoji(t){   /* M. Tembo - 10/18/26 */
+  try{ if(window.Intl&&Intl.Segmenter) return Array.from(new Intl.Segmenter().segment(t),function(x){ return x.segment; }); }catch(e){}   /* M. Tembo - 10/18/26 */
+  return Array.from(t);   /* M. Tembo - 10/18/26 */
+}   /* M. Tembo - 10/18/26 */
+function allEmojis(){   /* M. Tembo - 10/18/26 */
+  if(_allEmo) return _allEmo;   /* M. Tembo - 10/18/26 */
+  var seen={},out=[],re=null;   /* M. Tembo - 10/18/26 */
+  try{ re=new RegExp("\\p{Extended_Pictographic}|\\u20E3","u"); }catch(e){}   /* M. Tembo - 10/18/26 */
+  function add(e){ e=(e||"").trim(); if(!e||seen[e]||(re&&!re.test(e))) return; seen[e]=1; out.push(e); }   /* M. Tembo - 10/18/26 */
+  EMOJIS.forEach(add);   /* M. Tembo - 10/18/26 */
+  function walk(o){   /* M. Tembo - 10/18/26 */
+    if(!o||typeof o!=="object") return;   /* M. Tembo - 10/18/26 */
+    if(Array.isArray(o)){ o.forEach(walk); return; }   /* M. Tembo - 10/18/26 */
+    Object.keys(o).forEach(function(k){   /* M. Tembo - 10/18/26 */
+      if(k==="ic"&&typeof o[k]==="string") icParts(o[k]).forEach(function(p){ if(!isArt(p)&&!isImg(p)) splitEmoji(p).forEach(add); });   /* M. Tembo - 10/18/26 */
+      else walk(o[k]);   /* M. Tembo - 10/18/26 */
+    });   /* M. Tembo - 10/18/26 */
+  }   /* M. Tembo - 10/18/26 */
+  walk([MENU,PART_PRESETS,FLAVOR_PRESETS,Q_LIBRARY,TOP_MEAT,TOP_VEG,TOP_CHEESE,MEAL_UPGRADES,MEAL_SIDES,MEAL_DRINKS,KID_SIDES,KID_DRINKS]);   /* M. Tembo - 10/18/26 */
+  _allEmo=out; return out;   /* M. Tembo - 10/18/26 */
+}   /* M. Tembo - 10/18/26 */
+function saveIcons(){ try{ localStorage.setItem("ou_icons",JSON.stringify(state.icons)); return true; }catch(e){ return false; } }   /* M. Tembo - 10/18/26 */
+/* I shrink an imported picture to 128px so lots of them fit in the tablet's storage */   /* M. Tembo - 10/18/26 */
+function importIcon(after){   /* M. Tembo - 10/18/26 */
+  var inp=document.createElement("input"); inp.type="file"; inp.accept="image/*";   /* M. Tembo - 10/18/26 */
+  inp.onchange=function(){   /* M. Tembo - 10/18/26 */
+    var f=inp.files&&inp.files[0]; if(!f) return;   /* M. Tembo - 10/18/26 */
+    var r=new FileReader();   /* M. Tembo - 10/18/26 */
+    r.onload=function(){   /* M. Tembo - 10/18/26 */
+      var im=new Image();   /* M. Tembo - 10/18/26 */
+      im.onload=function(){   /* M. Tembo - 10/18/26 */
+        var N=128,c=document.createElement("canvas"); c.width=N; c.height=N;   /* M. Tembo - 10/18/26 */
+        var k=Math.min(N/im.width,N/im.height),w=im.width*k,h=im.height*k;   /* M. Tembo - 10/18/26 */
+        c.getContext("2d").drawImage(im,(N-w)/2,(N-h)/2,w,h);   /* M. Tembo - 10/18/26 */
+        var id="u"+Date.now(); state.icons[id]=c.toDataURL("image/png");   /* M. Tembo - 10/18/26 */
+        if(!saveIcons()){ delete state.icons[id]; alert("There is no room for another picture. Remove one you don't use first."); return; }   /* M. Tembo - 10/18/26 */
+        beep(1320,.1); after("img:"+id);   /* M. Tembo - 10/18/26 */
+      };   /* M. Tembo - 10/18/26 */
+      im.onerror=function(){ alert("That picture would not open. Try a PNG or JPG."); };   /* M. Tembo - 10/18/26 */
+      im.src=r.result;   /* M. Tembo - 10/18/26 */
+    };   /* M. Tembo - 10/18/26 */
+    r.readAsDataURL(f);   /* M. Tembo - 10/18/26 */
+  };   /* M. Tembo - 10/18/26 */
+  inp.click();   /* M. Tembo - 10/18/26 */
+}   /* M. Tembo - 10/18/26 */
+/* one picture grid for the food editor and the answer picker: my pictures, numbers, drawn icons, emoji */   /* M. Tembo - 10/18/26 */
+function buildPickGrid(cur,onPick,withNums,refresh){   /* M. Tembo - 10/18/26 */
+  var g=document.createElement("div"); g.className="emopick";   /* M. Tembo - 10/18/26 */
+  var on=icParts(cur);   /* M. Tembo - 10/18/26 */
+  function sec(t){ var d=document.createElement("div"); d.className="picksec"; d.textContent=t; g.appendChild(d); }   /* M. Tembo - 10/18/26 */
+  function add(val,html,isText){   /* M. Tembo - 10/18/26 */
+    var b=document.createElement("button"); b.className="emo"+(on.indexOf(val)!==-1?" on":"");   /* M. Tembo - 10/18/26 */
+    if(isText) b.textContent=html; else b.innerHTML=html;   /* M. Tembo - 10/18/26 */
+    b.onclick=function(){ if(b._held){ b._held=false; return; } onPick(val); };   /* M. Tembo - 10/18/26 */
+    g.appendChild(b); return b;   /* M. Tembo - 10/18/26 */
+  }   /* M. Tembo - 10/18/26 */
+  sec("My pictures (hold one to remove it)");   /* M. Tembo - 10/18/26 */
+  var ap=document.createElement("button"); ap.className="emo addpic"; ap.textContent="\u2795 Add";   /* M. Tembo - 10/18/26 */
+  ap.onclick=function(){ importIcon(onPick); }; g.appendChild(ap);   /* M. Tembo - 10/18/26 */
+  Object.keys(state.icons).forEach(function(id){   /* M. Tembo - 10/18/26 */
+    var b=add("img:"+id,icoInner("img:"+id)),t=null;   /* M. Tembo - 10/18/26 */
+    b.addEventListener("pointerdown",function(){ b._held=false; t=setTimeout(function(){   /* M. Tembo - 10/18/26 */
+      b._held=true;   /* M. Tembo - 10/18/26 */
+      if(!confirm("Remove this picture? Foods that use it will show a question mark.")) return;   /* M. Tembo - 10/18/26 */
+      delete state.icons[id]; saveIcons(); beep(300,.08); if(refresh) refresh();   /* M. Tembo - 10/18/26 */
+    },700); });   /* M. Tembo - 10/18/26 */
+    ["pointerup","pointerleave","pointercancel"].forEach(function(ev){ b.addEventListener(ev,function(){ clearTimeout(t); }); });   /* M. Tembo - 10/18/26 */
+  });   /* M. Tembo - 10/18/26 */
+  if(withNums){ sec("Numbers"); NUMS.forEach(function(n){ add("art:num"+n,NUM_ART["num"+n]); }); }   /* M. Tembo - 10/18/26 */
+  sec("Drawn pictures");   /* M. Tembo - 10/18/26 */
+  Object.keys(ART).forEach(function(k){ add("art:"+k,ART[k]); });   /* M. Tembo - 10/18/26 */
+  sec("Emoji");   /* M. Tembo - 10/18/26 */
+  allEmojis().forEach(function(e){ add(e,e,true); });   /* M. Tembo - 10/18/26 */
+  return g;   /* M. Tembo - 10/18/26 */
+}   /* M. Tembo - 10/18/26 */
+function openPicker(current,cb){   /* M. Tembo - 10/18/26 */
+  pickCb=cb; pickCur=current; pickDuo=icParts(current).length>1; pickFirst=null;   /* M. Tembo - 10/18/26 */
+  renderPicker(); $("pickScrim").classList.add("on");   /* M. Tembo - 10/18/26 */
+}   /* M. Tembo - 10/18/26 */
+function finishPick(v){   /* M. Tembo - 10/18/26 */
+  $("pickScrim").classList.remove("on");   /* M. Tembo - 10/18/26 */
+  var f=pickCb; pickCb=null; beep(990,.06); if(f) f(v);   /* M. Tembo - 10/18/26 */
+}   /* M. Tembo - 10/18/26 */
+function renderPicker(){   /* M. Tembo - 10/18/26 */
+  var body=$("pickBody"),keep=body.scrollTop; body.innerHTML="";   /* I keep the scroll spot so the second tap isn't back at the top - M. Tembo - 10/18/26 */
+  var duo=document.createElement("div"); duo.className="seg";   /* M. Tembo - 10/18/26 */
+  [{v:false,l:"1 picture"},{v:true,l:"2 pictures"}].forEach(function(o){   /* M. Tembo - 10/18/26 */
+    var db=document.createElement("button"); db.className=pickDuo===o.v?"on":""; db.textContent=o.l;   /* M. Tembo - 10/18/26 */
+    db.onclick=function(){ pickDuo=o.v; pickFirst=null; beep(700,.05); renderPicker(); };   /* M. Tembo - 10/18/26 */
+    duo.appendChild(db);   /* M. Tembo - 10/18/26 */
+  });   /* M. Tembo - 10/18/26 */
+  body.appendChild(duo);   /* M. Tembo - 10/18/26 */
+  if(pickDuo){   /* M. Tembo - 10/18/26 */
+    var hint=document.createElement("div"); hint.className="pickhint";   /* M. Tembo - 10/18/26 */
+    if(pickFirst){ hint.innerHTML=mini(pickFirst)+" + now tap the second picture"; }   /* M. Tembo - 10/18/26 */
+    else hint.textContent="Tap the first picture";   /* M. Tembo - 10/18/26 */
+    body.appendChild(hint);   /* M. Tembo - 10/18/26 */
+  }   /* M. Tembo - 10/18/26 */
+  body.appendChild(buildPickGrid(pickFirst||pickCur,function(v){   /* M. Tembo - 10/18/26 */
+    if(!pickDuo){ finishPick(v); return; }   /* M. Tembo - 10/18/26 */
+    if(!pickFirst){ pickFirst=v; beep(990,.05); renderPicker(); return; }   /* M. Tembo - 10/18/26 */
+    finishPick(pickFirst+"|"+v);   /* M. Tembo - 10/18/26 */
+  },true,renderPicker));   /* M. Tembo - 10/18/26 */
+  body.scrollTop=keep;   /* M. Tembo - 10/18/26 */
+}   /* M. Tembo - 10/18/26 */
 $("pickX").onclick=function(){ $("pickScrim").classList.remove("on"); pickCb=null; };
 
 function renderEditor(){
@@ -2094,28 +2210,20 @@ function renderEditor(){
   [{v:false,l:"1 picture"},{v:true,l:"2 pictures"}].forEach(function(o){
     var db=document.createElement("button"); db.className=duoMode===o.v?"on":""; db.textContent=o.l;
     db.onclick=function(){ duoMode=o.v;
-      if(!o.v&&iconCount(draft.ic)>1) draft.ic=Array.from(draft.ic)[0];
+      if(!o.v&&icParts(draft.ic).length>1) draft.ic=icParts(draft.ic)[0];   /* M. Tembo - 10/18/26 */
+      else if(!o.v&&!isPic(draft.ic)&&iconCount(draft.ic)>1) draft.ic=Array.from(draft.ic)[0];   /* M. Tembo - 10/18/26 */
       beep(700,.05); renderEditor(); };
     duo.appendChild(db);
   });
   b.appendChild(duo);
-  var pk=document.createElement("div"); pk.className="emopick";
-  Object.keys(ART).forEach(function(k){                 /* drawn icons first - M. Tembo - 9/6/26 */
-    var key="art:"+k;
-    var ab=document.createElement("button"); ab.className="emo"+(draft.ic===key?" on":"");
-    ab.innerHTML=ART[k];
-    ab.onclick=function(){ draft.ic=key; duoMode=false; beep(990,.05); renderEditor(); };
-    pk.appendChild(ab);
-  });
-  EMOJIS.forEach(function(e){
-    var eb=document.createElement("button"); eb.className="emo"+(draft.ic===e?" on":""); eb.textContent=e;
-    eb.onclick=function(){
-      if(duoMode){ draft.ic = iconCount(draft.ic)>=2 ? e : draft.ic+e; }
-      else draft.ic=e;
-      beep(990,.05); renderEditor();
-    };
-    pk.appendChild(eb);
-  });
+  if(duoMode){ var hint=document.createElement("div"); hint.className="pickhint";   /* M. Tembo - 10/18/26 */
+    hint.textContent=icParts(draft.ic).length>1?"Tap a picture to start over":"Tap the second picture"; b.appendChild(hint); }   /* M. Tembo - 10/18/26 */
+  var pk=buildPickGrid(draft.ic,function(v){   /* M. Tembo - 10/18/26 */
+    if(!duoMode) draft.ic=v;   /* M. Tembo - 10/18/26 */
+    else if(icParts(draft.ic).length>1||(!isPic(draft.ic)&&iconCount(draft.ic)>1)) draft.ic=v;   /* M. Tembo - 10/18/26 */
+    else draft.ic=draft.ic+"|"+v;   /* M. Tembo - 10/18/26 */
+    beep(990,.05); renderEditor();   /* M. Tembo - 10/18/26 */
+  },false,renderEditor);   /* M. Tembo - 10/18/26 */
   b.appendChild(pk);
 
   b.appendChild(label("Which section?"));
@@ -2389,7 +2497,7 @@ function saveDraft(){
 
 /* ================= export / import ================= */
 function bundle(){ return {version:5,custom:state.custom,over:state.over,hidden:state.hidden,
-  arrange:state.arrange,pricing:SECTION_PRICE}; }
+  arrange:state.arrange,pricing:SECTION_PRICE,icons:state.icons}; }   /* M. Tembo - 10/18/26 */
 function saveBlob(text,type,filename){
   try{
     var blob=new Blob([text],{type:type});
@@ -2404,7 +2512,7 @@ function exportWholeFile(btn){
   btn.textContent="⏳ Building...";
   fetch(location.href,{cache:"no-store"}).then(function(r){ return r.text(); }).then(function(src){
     var payload=JSON.stringify({stamp:Date.now(),custom:state.custom,over:state.over,
-      hidden:state.hidden,arrange:state.arrange,pricing:SECTION_PRICE}).replace(/</g,"\\u003c");
+      hidden:state.hidden,arrange:state.arrange,pricing:SECTION_PRICE,icons:state.icons}).replace(   /* M. Tembo - 10/18/26 *//</g,"\\u003c");
     var bakeLine=/^var BAKED=.*;\/\*BAKE\*\/[ \t]*$/m;   /* I match the line by pattern, not by literal text, so the export can never find its own code - M. Tembo - 10/18/26 */
     if((src.match(/^var BAKED=.*;\/\*BAKE\*\/[ \t]*$/gm)||[]).length!==1) throw new Error("marker missing");   /* M. Tembo - 10/18/26 */
     var out=src.replace(bakeLine,function(){ return "var BAKED="+payload+";/*BAKE*/"; });   /* a function, so a $ in a food name is not read as a replace pattern - M. Tembo - 10/18/26 */
@@ -2443,8 +2551,10 @@ $("importBtn").onclick=function(){
     var d=JSON.parse($("jsonBox").value);
     state.custom=d.custom||[]; state.over=d.over||{}; state.hidden=d.hidden||{};
     state.arrange=d.arrange||{};
-    if(d.pricing){ SECTION_PRICE=d.pricing; store.set("ou_pricing",SECTION_PRICE); }
-    saveMenu(); $("jsonScrim").classList.remove("on"); renderRail(); renderGrid(); beep(1320,.14); say("Menu loaded");
+    if(d.pricing){ SECTION_PRICE=d.pricing; store.set("ou_pricing",SECTION_PRICE); }   /* M. Tembo - 10/18/26 */
+    for(var ik in (d.icons||{})) state.icons[ik]=d.icons[ik];   /* M. Tembo - 10/18/26 */
+    saveIcons();   /* M. Tembo - 10/18/26 */
+    saveMenu();   /* M. Tembo - 10/18/26 */ $("jsonScrim").classList.remove("on"); renderRail(); renderGrid(); beep(1320,.14); say("Menu loaded");
   }catch(e){ alert("That is not a valid menu file."); } };
   f.appendChild(go); $("jsonScrim").classList.add("on");
 };
